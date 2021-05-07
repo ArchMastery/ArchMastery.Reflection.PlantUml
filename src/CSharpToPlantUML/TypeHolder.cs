@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Dynamic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
+#nullable enable
 namespace CSharpToPlantUML
 {
     public class TypeHolder
@@ -19,14 +21,14 @@ namespace CSharpToPlantUML
         }
 
         public IEnumerable<string> Exclusions { get; set; } =
-            new[] {"System.", "Windows.", "Microsoft."};
+            new[] { "System.", "Windows.", "Microsoft." };
 
         public IEnumerable<TypeHolder> GetNestedTypes() =>
             ObjectType.GetNestedTypes().Select(nestedType => new TypeHolder(nestedType));
 
         public PumlClip Generate(Layers layers)
         {
-            var typeFullName = NormalizeName(ObjectType.FullName);
+            var typeFullName = NormalizeName(ObjectType.FullName!);
             var result = new PumlClip();
 
             var version = result.Version;
@@ -64,7 +66,7 @@ namespace CSharpToPlantUML
 
             if (layerMap is (_, Layers.Inheritance, _, _, _, _))
             {
-                var baseName = NormalizeName(ObjectType.BaseType?.FullName);
+                var baseName = NormalizeName(ObjectType.BaseType?.FullName ?? string.Empty);
                 result.Segments.Add((layers, @$"{(ObjectType.BaseType?.Name switch
                 {
                     nameof(Object) => string.Empty,
@@ -98,33 +100,27 @@ namespace CSharpToPlantUML
 
                 var fields = ObjectType.GetRuntimeFields().Where(fi => fi.IsPrivate);
                 var properties = ObjectType.GetRuntimeProperties().Where(fi => fi.GetMethod?.IsPrivate ?? true);
-                var methods = ObjectType.GetRuntimeMethods().Where(fi => fi.IsPrivate);
+                var methods = ObjectType.GetRuntimeMethods().Where(fi => fi.IsPrivate && !fi.Name.StartsWith("get_", true, CultureInfo.CurrentCulture) && !fi.Name.StartsWith("set_", true, CultureInfo.CurrentCulture));
                 var events = ObjectType.GetRuntimeEvents().Where(fi => fi.AddMethod?.IsPrivate ?? true);
 
-                var members = from o in new[] {ObjectType}
-                    join fi in fields on o equals fi.DeclaringType into fis
-                    from rfi in fis.DefaultIfEmpty()
-                    join pi in properties on o equals pi.DeclaringType into pis
-                    from rpi in pis.DefaultIfEmpty()
-                    join mi in methods on o equals mi.DeclaringType into mis
-                    from rmi in mis.DefaultIfEmpty()
-                    join ei in events on o equals ei.DeclaringType into eis
-                    from rei in eis.DefaultIfEmpty()
-                    select (ObjectType, rfi, rpi, rmi, rei);
-
-                foreach (var member in members)
+                foreach (var member in fields)
                 {
-                    if (member is (_, not null, _, _, _))
-                        memberStrings.AddRange(BuildField(member.rfi, BindingFlags.NonPublic));
+                    memberStrings.AddRange(BuildField(member, BindingFlags.NonPublic));
+                }
 
-                    if (member is (_, _, not null, _, _))
-                        memberStrings.AddRange(BuildProperty(member.rpi, BindingFlags.NonPublic));
+                foreach (var member in properties)
+                {
+                    memberStrings.AddRange(BuildProperty(member, BindingFlags.NonPublic));
+                }
 
-                    if (member is (_, _, _, not null, _))
-                        memberStrings.AddRange(BuildMethod(member.rmi, BindingFlags.NonPublic));
+                foreach (var member in methods)
+                {
+                    memberStrings.AddRange(BuildMethod(member, BindingFlags.NonPublic));
+                }
 
-                    if (member is (_, _, _, _, not null))
-                        memberStrings.AddRange(BuildEvent(member.rei, BindingFlags.NonPublic));
+                foreach (var member in events)
+                {
+                    memberStrings.AddRange(BuildEvent(member, BindingFlags.NonPublic));
                 }
 
                 result.Segments.Add((Layers.NonPublic, string.Join("\n", memberStrings)));
@@ -132,6 +128,34 @@ namespace CSharpToPlantUML
 
             if (layerMap is (_, _, _, Layers.Public, _, _))
             {
+                var memberStrings = BuildConstructors().ToList();
+
+                var fields = ObjectType.GetRuntimeFields().Where(fi => fi.IsPublic);
+                var properties = ObjectType.GetRuntimeProperties().Where(fi => fi.GetMethod?.IsPublic ?? false);
+                var methods = ObjectType.GetRuntimeMethods().Where(fi => fi.IsPublic && !fi.Name.StartsWith("get_", true, CultureInfo.CurrentCulture) && !fi.Name.StartsWith("set_", true, CultureInfo.CurrentCulture));
+                var events = ObjectType.GetRuntimeEvents().Where(fi => fi.AddMethod?.IsPublic ?? false);
+
+                foreach (var member in fields)
+                {
+                    memberStrings.AddRange(BuildField(member, BindingFlags.Public));
+                }
+
+                foreach (var member in properties)
+                {
+                    memberStrings.AddRange(BuildProperty(member, BindingFlags.Public));
+                }
+
+                foreach (var member in methods)
+                {
+                    memberStrings.AddRange(BuildMethod(member, BindingFlags.Public));
+                }
+
+                foreach (var member in events)
+                {
+                    memberStrings.AddRange(BuildEvent(member, BindingFlags.Public));
+                }
+
+                result.Segments.Add((Layers.NonPublic, string.Join("\n", memberStrings)));
             }
 
             if (layerMap is (_, _, _, _, Layers.Relationships, _))
@@ -162,12 +186,12 @@ namespace CSharpToPlantUML
         private IEnumerable<string> BuildMethod(MethodInfo? member, BindingFlags bindingFlags)
         {
             if (member is null) yield break;
-            
-            var methods = ObjectType.GetRuntimeMethods().Where(e => e.Name == member?.Name);
 
-            foreach (var method in methods)
+            IEnumerable<MethodInfo> methods = ObjectType.GetRuntimeMethods().Cast<MethodInfo>().Where(e => e is not null && e.Name == member?.Name);
+
+            foreach (MethodInfo method in methods)
             {
-                var parList = method?.GetParameters();
+                var parList = method.GetParameters() ?? Array.Empty<ParameterInfo>();
                 var parms = MakeParList(parList);
 
                 yield return
@@ -176,7 +200,7 @@ namespace CSharpToPlantUML
             }
         }
 
-        private IEnumerable<string> BuildField(FieldInfo? field, BindingFlags bindingFlags)
+        private static IEnumerable<string> BuildField(FieldInfo? field, BindingFlags bindingFlags)
         {
             if (field is null) yield break;
 
@@ -186,18 +210,18 @@ namespace CSharpToPlantUML
 
             yield return
                 $"{GetAccessibility(isPublic, isPrivate, isFamily)}{NormalizeName(field.Name)} " +
-                $": {NormalizeName(field.FieldType.FullName)}";
+                $": {NormalizeName(field.FieldType.FullName ?? string.Empty)}";
         }
 
         private IEnumerable<string> BuildProperty(PropertyInfo? member, BindingFlags bindingFlags)
         {
             if (member is null) yield break;
-            
-            var properties = ObjectType.GetRuntimeProperties().Where(e => e.Name == member?.Name);
+
+            IEnumerable<PropertyInfo> properties = ObjectType.GetRuntimeProperties().Where(e => e is not null && e.Name == member?.Name);
 
             foreach (var property in properties)
             {
-                var parList = property?.GetIndexParameters();
+                var parList = property.GetIndexParameters();
                 var parms = MakeParList(parList);
 
                 var indexerParameters = string.IsNullOrWhiteSpace(parms)
@@ -217,7 +241,7 @@ namespace CSharpToPlantUML
                 yield return
                     $"{GetAccessibility(isPublic, isPrivate, isFamily)}{NormalizeName(property.Name)} " +
                     $"( {string.Join(", ", acc)} ) " +
-                    $": {NormalizeName(property.PropertyType.FullName)} << property >>";
+                    $": {NormalizeName(property.PropertyType.FullName ?? string.Empty)} << property >>";
             }
         }
 
@@ -235,14 +259,14 @@ namespace CSharpToPlantUML
         private IEnumerable<string> BuildEvent(EventInfo? member, BindingFlags bindingFlags)
         {
             if (member is null) yield break;
-            
+
             var events = ObjectType.GetRuntimeEvents().Where(e => e.Name == member?.Name);
 
             foreach (var evt in events)
             {
-                var delegateType = evt.EventHandlerType;
-                var method = delegateType?.GetMethod("Invoke");
-                var parList = method?.GetParameters();
+                var delegateType = evt.EventHandlerType!;
+                var method = delegateType.GetMethod("Invoke")!;
+                var parList = method.GetParameters();
                 var parms = MakeParList(parList);
 
                 yield return
@@ -268,11 +292,12 @@ namespace CSharpToPlantUML
             return name;
         }
 
-        private string MakeParList(ParameterInfo[] parameters)
+        private static string MakeParList(ParameterInfo[] parameters)
         {
             var p = parameters
-                .Select(par => $"{NormalizeName(par.Name)} " +
-                               $": {NormalizeName(par.ParameterType.FullName)} " +
+                .Where(par => par is not null)
+                .Select(par => $"{NormalizeName(par.Name!)} " +
+                               $": {NormalizeName(par.ParameterType.FullName!)} " +
                                $"{(par.HasDefaultValue ? $" = {par.DefaultValue}" : "")}")
                 .ToArray();
 

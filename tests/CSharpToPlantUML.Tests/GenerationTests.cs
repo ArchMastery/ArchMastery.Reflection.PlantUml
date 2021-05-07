@@ -1,7 +1,4 @@
 using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using CSharpToPlantUML.Tests.Annotations;
 using Divergic.Logging.Xunit;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -16,10 +13,6 @@ namespace CSharpToPlantUML.Tests
         {
         }
 
-        private GenerationTests(ITestOutputHelper output, LoggingConfig? config = null) : base(output, config)
-        {
-        }
-        
         [Theory]
         [InlineData(typeof(int?))]
         [InlineData(typeof(Guid))]
@@ -34,10 +27,10 @@ namespace CSharpToPlantUML.Tests
             var clip = typeHolder.Generate(Layers.Type);
             Assert.NotNull(clip);
             Assert.NotEmpty(clip.ToString().ToCharArray());
-            
+
             Output.WriteLine(clip.ToString());
-        }      
-        
+        }
+
         [Theory]
         [InlineData(typeof(StringComparer))]
         [InlineData(typeof(string))]
@@ -51,10 +44,10 @@ namespace CSharpToPlantUML.Tests
             var clip = typeHolder.Generate(Layers.Inheritance);
             Assert.NotNull(clip);
             Assert.NotEmpty(clip.ToString().ToCharArray());
-            
+
             Output.WriteLine(clip.ToString());
-        }        
-        
+        }
+
         [Theory]
         [InlineData(typeof(TestClass))]
         public void NonPublicMembers(Type type)
@@ -66,34 +59,23 @@ namespace CSharpToPlantUML.Tests
             Assert.NotNull(clip);
             var result = clip.ToString();
             Assert.NotEmpty(result);
-            
+
             Output.WriteLine(clip.ToString());
         }
-    }
 
-    public class TestClass : INotifyPropertyChanged
-    {
-        private string _property;
-
-        public string Property
+        [Theory]
+        [InlineData(typeof(TestClass))]
+        public void PublicMembers(Type type)
         {
-            get => _property;
-            private set => _property = value;
-        }
+            TypeHolder typeHolder = new(type);
 
-        public TestClass(string value)
-        {
-            Property = value;
-        }
+            Assert.NotNull(typeHolder);
+            var clip = typeHolder.Generate(Layers.Members);
+            Assert.NotNull(clip);
+            var result = clip.ToString();
+            Assert.NotEmpty(result);
 
-        private void ResetProperty() => Property = null;
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        [NotifyPropertyChangedInvocator]
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            Output.WriteLine(clip.ToString());
         }
     }
 }

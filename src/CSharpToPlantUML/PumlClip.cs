@@ -52,7 +52,7 @@ namespace CSharpToPlantUML
             return sb.ToString();
         }
 
-        private static object _padlock = new object();
+        private static readonly object _padlock = new ();
 
         public override string ToString()
         {
