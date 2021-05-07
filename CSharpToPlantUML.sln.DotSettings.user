@@ -1,6 +1,8 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=716a580c_002D98f7_002D4722_002D880f_002Dcd8d16294b6a/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Test1" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=5b8276e1_002Dcde3_002D4307_002Db614_002D4cf97e33fc6c/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="BuiltInTypes" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
   &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;xUnit::AE7B2867-E681-4E5E-BA09-F3816F4B7147::net5.0::CSharpToPlantUML.Tests.UnitTest1.Test1&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::AE7B2867-E681-4E5E-BA09-F3816F4B7147::net5.0::CSharpToPlantUML.Tests.GenerationTests.BuiltInTypes&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::AE7B2867-E681-4E5E-BA09-F3816F4B7147::net5.0::CSharpToPlantUML.Tests.GenerationTests.Inheritance&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::AE7B2867-E681-4E5E-BA09-F3816F4B7147::net5.0::CSharpToPlantUML.Tests.GenerationTests.NonPublicMembers&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

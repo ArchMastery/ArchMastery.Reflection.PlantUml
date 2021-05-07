@@ -7,8 +7,8 @@ namespace CSharpToPlantUML
 {
     public class PumlClip
     {
-        private int _version;
-        private int _rendered;
+        private int _version = -1;
+        private int _rendered = -1;
         private string _cached;
 
         public PumlClip()
@@ -22,10 +22,11 @@ namespace CSharpToPlantUML
         }
 
         public ObservableCollection<(Layers, string)> Segments { get; set; } = new ();
+        public int Version => _version;
 
         public string ToString(Layers layers)
         {
-            if (_rendered == _version) return _cached;
+            if (_rendered > -1 && _version > -1 && _rendered == _version) return _cached;
 
             var sb = new StringBuilder();
             lock (_padlock)
