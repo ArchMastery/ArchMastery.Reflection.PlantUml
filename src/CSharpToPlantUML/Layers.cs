@@ -9,12 +9,12 @@ namespace CSharpToPlantUML
         Type = 1,
         Public = 2,
         NonPublic = 4,
-        Members = Type + Public + NonPublic,      // 7
-        TypeEnd = Members + 8,
-        InnerObjects = 16,
-        Relationships = 32,
-        Inheritance = 64,
-        Notes = 128,
-        All = Members + Relationships + Inheritance + Notes
+        Members = Type | Public | NonPublic,      // 7
+        TypeEnd = Members,
+        InnerObjects = TypeEnd,
+        Relationships = 16,
+        Inheritance = 32,
+        Notes = 64,
+        All = Members | Relationships | Inheritance | Notes
     }
 }

@@ -1,6 +1,9 @@
 using System;
+
 using Divergic.Logging.Xunit;
+
 using Microsoft.Extensions.Logging;
+
 using Xunit;
 using Xunit.Abstractions;
 
@@ -49,36 +52,49 @@ namespace CSharpToPlantUML.Tests
         }
 
         [Theory]
-        [InlineData(typeof(TestClass<Guid>))]
-        public void NonPublicMembers(Type type)
+        [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
+        [InlineData(typeof(Extensions), typeof(TestBase<>))]
+        public void NonPublicMembers(params Type[] types)
         {
-            TypeHolder typeHolder = new(type);
+            Output.WriteLine($"@startuml");
+            foreach (var type in types)
+            {
+                TypeHolder typeHolder = new(type);
 
-            Assert.NotNull(typeHolder);
-            var clip = typeHolder.Generate((Layers)(Layers.TypeEnd - Layers.Public));
-            Assert.NotNull(clip);
-            var result = clip.ToString();
-            Assert.NotEmpty(result);
+                Assert.NotNull(typeHolder);
+                var clip = typeHolder.Generate(Layers.Type | Layers.NonPublic | Layers.TypeEnd);
+                Assert.NotNull(clip);
+                var result = clip.ToString();
+                Assert.NotEmpty(result);
 
-            Output.WriteLine($"@startuml\n{clip}\n@enduml");
-        }
-
-        [Theory]
-        [InlineData(typeof(TestClass<Guid>))]
-        public void PublicMembers(Type type)
-        {
-            TypeHolder typeHolder = new(type);
-
-            Assert.NotNull(typeHolder);
-            var clip = typeHolder.Generate((Layers)(Layers.TypeEnd - Layers.NonPublic));
-            Assert.NotNull(clip);
-            var result = clip.ToString();
-            Assert.NotEmpty(result);
-            Output.WriteLine($"@startuml\n{result}\n@enduml");
+                Output.WriteLine($"\n{result}");
+            }
+            Output.WriteLine("\n@enduml");
         }
 
         [Theory]
         [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
+        [InlineData(typeof(Extensions), typeof(TestBase<>))]
+        public void PublicMembers(params Type[] types)
+        {
+            Output.WriteLine($"@startuml");
+            foreach (var type in types)
+            {
+                TypeHolder typeHolder = new(type);
+
+                Assert.NotNull(typeHolder);
+                var clip = typeHolder.Generate(Layers.Type | Layers.NonPublic | Layers.TypeEnd);
+                Assert.NotNull(clip);
+                var result = clip.ToString();
+                Assert.NotEmpty(result);
+                Output.WriteLine($"\n{result}");
+            }
+            Output.WriteLine("\n@enduml");
+        }
+
+        [Theory]
+        [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
+        [InlineData(typeof(Extensions), typeof(TestBase<>))]
         public void All(params Type[] types)
         {
             Output.WriteLine($"@startuml");
@@ -109,6 +125,7 @@ namespace CSharpToPlantUML.Tests
 
         [Theory]
         [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
+        [InlineData(typeof(Extensions), typeof(TestBase<>))]
         public void AllWithAttributes(params Type[] types)
         {
             Output.WriteLine($"@startuml");
