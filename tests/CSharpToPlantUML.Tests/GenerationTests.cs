@@ -28,7 +28,7 @@ namespace CSharpToPlantUML.Tests
             Assert.NotNull(clip);
             Assert.NotEmpty(clip.ToString().ToCharArray());
 
-            Output.WriteLine(clip.ToString());
+            Output.WriteLine($"@startuml\n{clip}\n@enduml");
         }
 
         [Theory]
@@ -45,37 +45,96 @@ namespace CSharpToPlantUML.Tests
             Assert.NotNull(clip);
             Assert.NotEmpty(clip.ToString().ToCharArray());
 
-            Output.WriteLine(clip.ToString());
+            Output.WriteLine($"@startuml\n{clip}\n@enduml");
         }
 
         [Theory]
-        [InlineData(typeof(TestClass))]
+        [InlineData(typeof(TestClass<Guid>))]
         public void NonPublicMembers(Type type)
         {
             TypeHolder typeHolder = new(type);
 
             Assert.NotNull(typeHolder);
-            var clip = typeHolder.Generate(Layers.NonPublic);
+            var clip = typeHolder.Generate((Layers)(Layers.TypeEnd - Layers.Public));
             Assert.NotNull(clip);
             var result = clip.ToString();
             Assert.NotEmpty(result);
 
-            Output.WriteLine(clip.ToString());
+            Output.WriteLine($"@startuml\n{clip}\n@enduml");
         }
 
         [Theory]
-        [InlineData(typeof(TestClass))]
+        [InlineData(typeof(TestClass<Guid>))]
         public void PublicMembers(Type type)
         {
             TypeHolder typeHolder = new(type);
 
             Assert.NotNull(typeHolder);
-            var clip = typeHolder.Generate(Layers.Members);
+            var clip = typeHolder.Generate((Layers)(Layers.TypeEnd - Layers.NonPublic));
             Assert.NotNull(clip);
             var result = clip.ToString();
             Assert.NotEmpty(result);
+            Output.WriteLine($"@startuml\n{result}\n@enduml");
+        }
 
-            Output.WriteLine(clip.ToString());
+        [Theory]
+        [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
+        public void All(params Type[] types)
+        {
+            Output.WriteLine($"@startuml");
+            foreach (var type in types)
+            {
+                TypeHolder typeHolder = new(type);
+
+                Assert.NotNull(typeHolder);
+                var clip = typeHolder.Generate(Layers.TypeEnd);
+                Assert.NotNull(clip);
+                var result = clip.ToString();
+                Assert.NotEmpty(result);
+                Output.WriteLine($"{result}\n");
+            }
+            foreach (var type in types)
+            {
+                TypeHolder typeHolder = new(type);
+
+                Assert.NotNull(typeHolder);
+                var clip = typeHolder.Generate(Layers.Relationships | Layers.Inheritance);
+                Assert.NotNull(clip);
+                var result = clip.ToString();
+                Assert.NotEmpty(result);
+                Output.WriteLine($"{result}\n");
+            }
+            Output.WriteLine($"@enduml");
+        }
+
+        [Theory]
+        [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
+        public void AllWithAttributes(params Type[] types)
+        {
+            Output.WriteLine($"@startuml");
+            foreach (var type in types)
+            {
+                TypeHolder typeHolder = new(type);
+
+                Assert.NotNull(typeHolder);
+                var clip = typeHolder.Generate(Layers.TypeEnd, true);
+                Assert.NotNull(clip);
+                var result = clip.ToString();
+                Assert.NotEmpty(result);
+                Output.WriteLine($"{result}\n");
+            }
+            foreach (var type in types)
+            {
+                TypeHolder typeHolder = new(type);
+
+                Assert.NotNull(typeHolder);
+                var clip = typeHolder.Generate(Layers.Relationships | Layers.Inheritance, true);
+                Assert.NotNull(clip);
+                var result = clip.ToString();
+                Assert.NotEmpty(result);
+                Output.WriteLine($"{result}\n");
+            }
+            Output.WriteLine($"@enduml");
         }
     }
 }

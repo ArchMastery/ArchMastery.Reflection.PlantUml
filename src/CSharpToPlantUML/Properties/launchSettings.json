@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "CSharpToPlantUML": {
+      "commandName": "Project"
+    }
+  }
+}

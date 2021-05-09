@@ -33,14 +33,15 @@ namespace CSharpToPlantUML
             {
                 _cached = null;
 
-                var toRender = layers switch
+                var toRender = (layers switch
                 {
                     Layers.All => Segments.GroupBy(tuple => tuple.Item1, tuple => tuple.Item2),
-                    _ => Segments.Where(tuple => (tuple.Item1 & layers) == layers)
+                    _ => Segments.Where(tuple => tuple.Item1 <= layers)
                         .GroupBy(tuple => tuple.Item1, tuple => tuple.Item2)
-                };
 
-                foreach (var item in toRender.OrderBy(grouping => (int) grouping.Key))
+                }).OrderBy(g => (int)g.Key);
+
+                foreach (var item in toRender)
                 {
                     item.ToList().ForEach(value => sb.AppendLine(value));
                 }
