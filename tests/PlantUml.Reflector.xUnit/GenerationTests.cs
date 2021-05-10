@@ -8,7 +8,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 #nullable enable
-namespace CSharpToPlantUML.Tests
+namespace PlantUml.Reflector.xUnit
 {
     public class GenerationTests : LoggingTestsBase
     {

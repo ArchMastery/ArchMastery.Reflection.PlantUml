@@ -11,7 +11,7 @@ using Microsoft.VisualBasic.FileIO;
 // ReSharper disable UnusedMember.Global
 
 #nullable enable
-namespace CSharpToPlantUML
+namespace PlantUml.Reflector
 {
     public class TypeHolder
     {

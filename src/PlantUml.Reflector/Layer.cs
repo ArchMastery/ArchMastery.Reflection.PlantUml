@@ -1,4 +1,4 @@
-﻿namespace CSharpToPlantUML
+﻿namespace PlantUml.Reflector
 {
     public class Layer
     {

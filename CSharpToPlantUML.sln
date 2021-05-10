@@ -1,10 +1,10 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpToPlantUML", "src\CSharpToPlantUML\CSharpToPlantUML.csproj", "{B07F7141-7FD3-41EA-95B8-7E68E308E705}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlantUml.Reflector", "src\PlantUml.Reflector\PlantUml.Reflector.csproj", "{B07F7141-7FD3-41EA-95B8-7E68E308E705}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{82A4E004-3B89-4A1E-B0A3-4775D3D3CF66}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpToPlantUML.Tests", "tests\CSharpToPlantUML.Tests\CSharpToPlantUML.Tests.csproj", "{AE7B2867-E681-4E5E-BA09-F3816F4B7147}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlantUml.Reflector.xUnit", "tests\PlantUml.Reflector.xUnit\PlantUml.Reflector.xUnit.csproj", "{AE7B2867-E681-4E5E-BA09-F3816F4B7147}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

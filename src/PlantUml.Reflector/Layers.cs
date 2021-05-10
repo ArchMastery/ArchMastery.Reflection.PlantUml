@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CSharpToPlantUML
+namespace PlantUml.Reflector
 {
     [Flags]
     public enum Layers

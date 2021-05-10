@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using CSharpToPlantUML.Tests.Annotations;
+using PlantUml.Reflector.xUnit.Annotations;
 
 #nullable enable
-namespace CSharpToPlantUML.Tests
+namespace PlantUml.Reflector.xUnit
 {
     public abstract class TestBase<TValue>
         where TValue : struct
@@ -16,19 +16,19 @@ namespace CSharpToPlantUML.Tests
 
     public record MyEntity(string Message);
 
-    public class TestClass<TValue> : TestBase<TValue>, INotifyPropertyChanged
+    public sealed class TestClass<TValue> : TestBase<TValue>, INotifyPropertyChanged
         where TValue : struct
     {
         private static readonly InnerClass<TValue>[] _innerClass = null;
         private static readonly IEnumerable<InnerClass<DateTime>> _datesField = new List<InnerClass<DateTime>>();
 
-        protected InnerClass<TValue>[] InnerProperty => _innerClass;
+        private InnerClass<TValue>[] InnerProperty => _innerClass;
         internal IEnumerable<InnerClass<DateTime>> DatesProperty => _datesField;
-        
-        public string Property
+
+        private string Property
         {
             get;
-            private set;
+            set;
         }
 
         public TestClass(string value)
@@ -47,7 +47,7 @@ namespace CSharpToPlantUML.Tests
         public event PropertyChangedEventHandler? PropertyChanged;
 
         [NotifyPropertyChangedInvocator]
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = "")
+        private void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
