@@ -1,6 +1,8 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace PlantUml.Reflector
@@ -11,8 +13,11 @@ namespace PlantUml.Reflector
         private int _rendered = -1;
         private string _cached;
 
-        public PumlClip()
+        public PumlClip(string typeName, string @namespace, Assembly assembly)
         {
+            TypeName = typeName;
+            Namespace = @namespace;
+            Assembly = assembly;
             Segments.CollectionChanged += SegmentsOnCollectionChanged;
         }
 
@@ -23,6 +28,9 @@ namespace PlantUml.Reflector
 
         public ObservableCollection<(Layers, string)> Segments { get; set; } = new ();
         public int Version => _version;
+        public string TypeName { get; }
+        public string Namespace { get; }
+        public Assembly Assembly { get; }
 
         public string ToString(Layers layers)
         {
@@ -43,14 +51,19 @@ namespace PlantUml.Reflector
 
                 foreach (var item in toRender)
                 {
-                    item.ToList().ForEach(value => sb.AppendLine(value));
+                    item.ToList().ForEach(value => {
+                        if(!string.IsNullOrWhiteSpace(value)) 
+                        {
+                            sb.AppendLine(value);
+                        }
+                    });
                 }
 
                 _rendered = _version;
-                _cached = sb.ToString();
+                _cached = Environment.NewLine + sb.ToString().Trim();
             }
 
-            return sb.ToString();
+            return _cached;
         }
 
         private static readonly object _padlock = new ();

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 using Microsoft.VisualBasic.CompilerServices;
@@ -31,7 +32,7 @@ namespace PlantUml.Reflector
         public PumlClip Generate(Layers layers, bool showAttributes = false)
         {
             var typeFullName = NormalizeName(ObjectType);
-            var result = new PumlClip();
+            var result = new PumlClip(typeFullName, ObjectType.Namespace, ObjectType.Assembly);
 
             var version = result.Version;
 
@@ -160,6 +161,7 @@ namespace PlantUml.Reflector
             => showAttributes && attributes.Count > 0
                 ? "\t[" + string.Join(", ",
                 attributes
+                    .Where(a => a.AttributeType != typeof(TypeForwardedFromAttribute))
                     .Select(a =>
                         a.AttributeType.Name.Replace("Attribute", string.Empty) +
                         (a.ConstructorArguments.Count > 0
@@ -313,11 +315,16 @@ namespace PlantUml.Reflector
         private void GetRelationships((Layers, Layers, Layers, Layers, Layers, Layers) layerMap, PumlClip result)
         {
             if (layerMap is not (_, _, _, _, Layers.Relationships, _)) return;
+            if (ObjectType.IsEnum) return;
 
             var mapped = new List<string>();
 
             foreach (var field in ObjectType.GetRuntimeFields())
             {
+                var IsSpecialName = (field.Attributes & FieldAttributes.SpecialName) == FieldAttributes.SpecialName;
+                if (IsSpecialName) continue;
+                if (field.Name.EndsWith("_BackingField")) continue;
+                if (NormalizeName(field.DeclaringType) != NormalizeName(ObjectType)) continue;
                 if (field.FieldType.Name.EndsWith(nameof(EventHandler))) continue;
                 if (field.FieldType.Name != NormalizeType(field.FieldType.Name)) continue;
 
@@ -354,16 +361,17 @@ namespace PlantUml.Reflector
 
                 var relationship = (Layers.Relationships,
                     field.FieldType.IsArray
-                        ? $"{objectName.AsSlug()} o- {arrayElementType?.AsSlug()} : aggregation"
-                        : genericCollectionType is not null
-                            ? $"{objectName.AsSlug()} o- {genericCollectionTypeName?.AsSlug()} : aggregation"
-                            : $"{objectName.AsSlug()} -> {fieldTypeName.AsSlug()} : use");
+                        ? $"{objectName.AsSlug()} o- {arrayElementType?.AsSlug()} : {field.Name} << aggregation[] >> "
+                        : genericCollectionType != typeof(object)
+                            ? $"{objectName.AsSlug()} o- {genericCollectionTypeName?.AsSlug()} : {field.Name} << aggregation >>"
+                            : $"{objectName.AsSlug()} -> {fieldTypeName.AsSlug()} : {field.Name} << use >>");
 
                 result.Segments.Add(relationship);
             }
 
             foreach (var property in ObjectType.GetRuntimeProperties())
             {
+                if (NormalizeName(property.DeclaringType) != NormalizeName(ObjectType)) continue;
                 if (property.PropertyType.Name.EndsWith(nameof(EventHandler))) continue;
                 if (property.PropertyType.Name != NormalizeType(property.PropertyType.Name)) continue;
 
@@ -400,10 +408,10 @@ namespace PlantUml.Reflector
 
                 var relationship = (Layers.Relationships,
                     property.PropertyType.IsArray
-                        ? $"{objectName.AsSlug()} o- {arrayElementType?.AsSlug()} : aggregation"
-                        : genericCollectionType is not null
-                            ? $"{objectName.AsSlug()} o- {genericCollectionTypeName?.AsSlug()} : aggregation"
-                            : $"{objectName.AsSlug()} -> {propertyTypeName.AsSlug()} : use");
+                        ? $"{objectName.AsSlug()} o- {arrayElementType?.AsSlug()} : {property.Name} << aggregation[] >>"
+                        : genericCollectionType != typeof(object)
+                            ? $"{objectName.AsSlug()} o- {genericCollectionTypeName?.AsSlug()} : {property.Name} << aggregation >>"
+                            : $"{objectName.AsSlug()} -> {propertyTypeName.AsSlug()} : {property.Name} << use >>");
 
                 result.Segments.Add(relationship);
             }
@@ -544,6 +552,9 @@ namespace PlantUml.Reflector
             if (field.DeclaringType != ObjectType) yield break;
 
             if (field.Name.EndsWith("_BackingField")) yield break;
+
+            var IsSpecialName = (field.Attributes & FieldAttributes.SpecialName) == FieldAttributes.SpecialName;
+            if (IsSpecialName) yield break;
 
             var isPublic = field.IsPublic;
             var isPrivate = field.IsPrivate;

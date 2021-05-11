@@ -1,0 +1,252 @@
+types: 7
+results.Count: 7
+@startuml
+
+abstract class "BuildRecipesExtensions" as PlantUml.Reflector.BuildRecipesExtensions 
+abstract class PlantUml.Reflector.BuildRecipesExtensions << static >> {
+	--- attributes ---
+	[Extension]
+
+	... methods ...
+	[Extension]
+	{static} +BuildAll(assembly: Reflection.Assembly, layers: PlantUml.Reflector.Layers  = All, showAttributes: bool  = False): Collections.Generic.IEnumerable<ValueTuple<PlantUml.Reflector.PumlClip, PlantUml.Reflector.Layers>>
+
+}
+
+class "Layer" as PlantUml.Reflector.Layer 
+class PlantUml.Reflector.Layer {
+	--- attributes ---
+
+	... fields ...
+	... constructors ...
+	+ctor(layers: PlantUml.Reflector.Layers)
+
+	... properties ...
+	[Flags]
+	+Layers (+get; +set;) : PlantUml.Reflector.Layers << property >>
+
+	... methods ...
+	+Shows(target: PlantUml.Reflector.Layers): bool
+
+}
+
+enum "Layers" as PlantUml.Reflector.Layers 
+enum PlantUml.Reflector.Layers {
+	--- attributes ---
+	[Flags]
+
+	... fields ...
+	[Flags]
+	{static} +None: PlantUml.Reflector.Layers
+
+	[Flags]
+	{static} +Type: PlantUml.Reflector.Layers
+
+	[Flags]
+	{static} +Public: PlantUml.Reflector.Layers
+
+	[Flags]
+	{static} +NonPublic: PlantUml.Reflector.Layers
+
+	[Flags]
+	{static} +Members: PlantUml.Reflector.Layers
+
+	[Flags]
+	{static} +TypeEnd: PlantUml.Reflector.Layers
+
+	[Flags]
+	{static} +InnerObjects: PlantUml.Reflector.Layers
+
+	[Flags]
+	{static} +Relationships: PlantUml.Reflector.Layers
+
+	[Flags]
+	{static} +Inheritance: PlantUml.Reflector.Layers
+
+	[Flags]
+	{static} +Notes: PlantUml.Reflector.Layers
+
+	[Flags]
+	{static} +All: PlantUml.Reflector.Layers
+
+	... methods ...
+}
+
+class "PumlClip" as PlantUml.Reflector.PumlClip 
+class PlantUml.Reflector.PumlClip {
+	--- attributes ---
+
+	... fields ...
+	[Serializable, IsReadOnly]
+	-_version: int
+
+	[Serializable, IsReadOnly]
+	-_rendered: int
+
+	[Serializable, Nullable((Byte)0), DefaultMember("Chars"), NullableContext((Byte)1)]
+	-_cached: string
+
+	[Serializable, NullableContext((Byte)2), ClassInterface((System.Runtime.InteropServices.ClassInterfaceType)1), ComVisible((Boolean)True)]
+	{static} -_padlock: object
+
+	... constructors ...
+	+ctor()
+
+	... properties ...
+	[Serializable, NullableContext((Byte)2), Nullable(new Byte[2] { 0, 1 }), DebuggerTypeProxy(typeof(System.Collections.Generic.CollectionDebugView`1)), DebuggerDisplay("Count = {Count}")]
+	+Segments (+get; +set;) : Collections.ObjectModel.ObservableCollection<ValueTuple<PlantUml.Reflector.Layers, string>> << property >>
+
+	[Serializable, IsReadOnly]
+	+Version (+get;) : int << property >>
+
+	... methods ...
+	-SegmentsOnCollectionChanged(sender: object, e: Collections.Specialized.NotifyCollectionChangedEventArgs): void
+
+	+ToString(layers: PlantUml.Reflector.Layers): string
+
+	+ToString(): string
+
+	+ToString(layers: PlantUml.Reflector.Layers): string
+
+	+ToString(): string
+
+}
+
+class "PumlWriter" as PlantUml.Reflector.PumlWriter 
+class PlantUml.Reflector.PumlWriter {
+	--- attributes ---
+
+	... fields ...
+	... constructors ...
+	+ctor()
+
+	... properties ...
+	[NullableContext((Byte)1), Nullable((Byte)0)]
+	+Encoding (+get;) : Text.Encoding << property >>
+
+	... methods ...
+	+WriteFile(path: string, clips: Collections.Generic.IEnumerable<ValueTuple<PlantUml.Reflector.PumlClip, PlantUml.Reflector.Layers>>): IO.FileStream
+
+	[AsyncStateMachine(typeof(PlantUml.Reflector.PumlWriter+<WriteFileAsync>d__4)), DebuggerStepThrough]
+	+WriteFileAsync(path: string, clips: Collections.Generic.IEnumerable<ValueTuple<PlantUml.Reflector.PumlClip, PlantUml.Reflector.Layers>>): Threading.Tasks.Task<IO.FileStream>
+
+	+WriteStream(stream: IO.Stream, clips: Collections.Generic.IEnumerable<ValueTuple<PlantUml.Reflector.PumlClip, PlantUml.Reflector.Layers>>): IO.Stream
+
+	[AsyncStateMachine(typeof(PlantUml.Reflector.PumlWriter+<WriteStreamAsync>d__6)), DebuggerStepThrough]
+	+WriteStreamAsync(stream: IO.Stream, clips: Collections.Generic.IEnumerable<ValueTuple<PlantUml.Reflector.PumlClip, PlantUml.Reflector.Layers>>): Threading.Tasks.Task<IO.Stream>
+
+}
+
+class "TypeHolder" as PlantUml.Reflector.TypeHolder 
+class PlantUml.Reflector.TypeHolder {
+	--- attributes ---
+	[NullableContext((Byte)1), Nullable((Byte)0)]
+
+	... fields ...
+	... constructors ...
+	+ctor(objectType: Type)
+
+	... properties ...
+	[NullableContext((Byte)1), Nullable((Byte)0)]
+	+ObjectType (+get;) : Type << property >>
+
+	+Exclusions (+get; +set;) : Collections.Generic.IEnumerable<string> << property >>
+
+	... methods ...
+	-GetInheritance(layerMap: ValueTuple<PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers>, result: PlantUml.Reflector.PumlClip, typeFullName: string): void
+
+	-GetObject(layers: PlantUml.Reflector.Layers, layerMap: ValueTuple<PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers>, result: PlantUml.Reflector.PumlClip, typeFullName: string, version: int, showAttributes: bool): void
+
+	-GetAttributes(attributes: Collections.Generic.IList<Reflection.CustomAttributeData>, showAttributes: bool): string
+
+	[NullableContext((Byte)0)]
+	-GetMembers(layerMap: ValueTuple<PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers>, result: PlantUml.Reflector.PumlClip, showAttributes: bool): void
+
+	[NullableContext((Byte)0)]
+	{static} -GetNotes(layerMap: ValueTuple<PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers>, result: PlantUml.Reflector.PumlClip): void
+
+	[NullableContext((Byte)0)]
+	-GetRelationships(layerMap: ValueTuple<PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers, PlantUml.Reflector.Layers>, result: PlantUml.Reflector.PumlClip): void
+
+	-GetArrayType(arrayType: Type): Type
+
+	{static} -NormalizeType(typeName: string): string
+
+	[IteratorStateMachine(typeof(PlantUml.Reflector.TypeHolder+<BuildConstructors>d__18))]
+	-BuildConstructors(layers: PlantUml.Reflector.Layers, showAttributes: bool): Collections.Generic.IEnumerable<string>
+
+	[IteratorStateMachine(typeof(PlantUml.Reflector.TypeHolder+<BuildMethod>d__19))]
+	-BuildMethod(member: Reflection.MethodInfo, showAttributes: bool): Collections.Generic.IEnumerable<string>
+
+	[IteratorStateMachine(typeof(PlantUml.Reflector.TypeHolder+<BuildField>d__20))]
+	-BuildField(field: Reflection.FieldInfo, showAttributes: bool): Collections.Generic.IEnumerable<string>
+
+	[NullableContext((Byte)2)]
+	-NormalizeName(type: Type): string
+
+	-GetGenericName(genericType: Type): string
+
+	[IteratorStateMachine(typeof(PlantUml.Reflector.TypeHolder+<BuildProperty>d__23))]
+	-BuildProperty(member: Reflection.PropertyInfo, bindingFlags: Reflection.BindingFlags, showAttributes: bool): Collections.Generic.IEnumerable<string>
+
+	-GetAccessibility(isStatic: bool, isAbstract: bool, isVirtual: bool, isPublic: bool, isPrivate: bool, isFamily: bool, isAssembly: bool): string
+
+	{static} -GetAccessibility(methodIsPublic: bool, methodIsPrivate: bool, methodIsFamily: bool, isAssembly: bool): string
+
+	-GetAccessibility(isStatic: bool, isAbstract: bool, isVirtual: bool, isPublic: bool, isPrivate: bool, isFamily: bool, isAssembly: bool): string
+
+	{static} -GetAccessibility(methodIsPublic: bool, methodIsPrivate: bool, methodIsFamily: bool, isAssembly: bool): string
+
+	[IteratorStateMachine(typeof(PlantUml.Reflector.TypeHolder+<BuildEvent>d__26))]
+	-BuildEvent(member: Reflection.EventInfo, showAttributes: bool): Collections.Generic.IEnumerable<string>
+
+	{static} -NormalizeNameString(name: string): string
+
+	-MakeParList(parameters: Reflection.ParameterInfo[]): string
+
+	[CompilerGenerated]
+	-<GetGenericName>g__GetGenericsArguments|22_0(<<No Name>>: PlantUml.Reflector.TypeHolder+<>c__DisplayClass22_0&  =): Collections.Generic.IEnumerable<string>
+
+	[NullableContext((Byte)0), CompilerGenerated]
+	-<MakeParList>b__28_0(par: Reflection.ParameterInfo): string
+
+	+GetNestedTypes(): Collections.Generic.IEnumerable<PlantUml.Reflector.TypeHolder>
+
+	+Generate(layers: PlantUml.Reflector.Layers, showAttributes: bool  = False): PlantUml.Reflector.PumlClip
+
+}
+
+abstract class "Extensions" as PlantUml.Reflector.Extensions 
+abstract class PlantUml.Reflector.Extensions << static >> {
+	--- attributes ---
+	[NullableContext((Byte)1), Nullable((Byte)0), Extension]
+
+	... fields ...
+	[NullableContext((Byte)1), Nullable((Byte)0)]
+	{static} -Regex: Text.RegularExpressions.Regex
+
+	... methods ...
+	[Extension]
+	{static} +AsSlug(text: string): string
+
+}
+
+
+
+PlantUml.Reflector.Layer -> PlantUml.Reflector.Layers : Layers << use >>
+
+PlantUml.Reflector.Layers --() IComparable : implements
+PlantUml.Reflector.Layers --() IConvertible : implements
+PlantUml.Reflector.Layers --() IFormattable : implements
+
+PlantUml.Reflector.PumlClip -> ValueTuple_PlantUml.Reflector.Layers__string_ : Segments << use >>
+
+PlantUml.Reflector.PumlWriter -> Text.Encoding : Encoding << use >>
+PlantUml.Reflector.PumlWriter --() IAsyncDisposable : implements
+PlantUml.Reflector.PumlWriter --() IDisposable : implements
+
+PlantUml.Reflector.TypeHolder -> Type : ObjectType << use >>
+PlantUml.Reflector.TypeHolder o- string : Exclusions << aggregation >>
+
+PlantUml.Reflector.Extensions -> Text.RegularExpressions.Regex : _Regex << use >>
+@enduml

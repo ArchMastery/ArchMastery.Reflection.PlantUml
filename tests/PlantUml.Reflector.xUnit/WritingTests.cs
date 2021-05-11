@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
+
 using Divergic.Logging.Xunit;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Logging;
 
 using Xunit;
@@ -15,19 +17,32 @@ namespace PlantUml.Reflector.xUnit
 {
     public class WritingTests : LoggingTestsBase
     {
-        private const string OutputWriteFileSyncPuml = "./output/writeFileSync.puml";
-        private const string OutputWriteFileAsyncPuml = "./output/writeFileAsync.puml";
-        private const string OutputWriteDocumentSyncPuml = "./output/writeDocumentSync.puml";
-        private const string OutputWriteDocumentAsyncPuml = "./output/writeDocumentAsync.puml";
+        private readonly string _writeFileSync;
+        private readonly string _writeFileAsync;
+        private readonly string _writeDocumentSync;
+        private readonly string _writeDocumentAsync;
 
         public WritingTests(ITestOutputHelper output) : base(output, LogLevel.Debug)
         {
-            output.WriteLine(Path.Combine(Environment.CurrentDirectory, OutputWriteFileSyncPuml));
-            output.WriteLine(Path.Combine(Environment.CurrentDirectory, OutputWriteFileAsyncPuml));
-            output.WriteLine(Path.Combine(Environment.CurrentDirectory, OutputWriteDocumentSyncPuml));
-            output.WriteLine(Path.Combine(Environment.CurrentDirectory, OutputWriteDocumentAsyncPuml));
+            const string outputWriteFileSyncPuml = "output/writeFileSync.puml";
+            const string outputWriteFileAsyncPuml = "output/writeFileAsync.puml";
+            const string outputWriteDocumentSyncPuml = "output/writeDocumentSync.puml";
+            const string outputWriteDocumentAsyncPuml = "output/writeDocumentAsync.puml";
 
-            var dir = Path.GetDirectoryName(Path.Combine(Environment.CurrentDirectory, OutputWriteFileSyncPuml));
+            _writeFileSync = Path.Combine(Environment.CurrentDirectory, outputWriteFileSyncPuml);
+            _writeFileAsync = Path.Combine(Environment.CurrentDirectory, outputWriteFileAsyncPuml);
+            _writeDocumentSync = Path.Combine(Environment.CurrentDirectory, outputWriteDocumentSyncPuml);
+            _writeDocumentAsync = Path.Combine(Environment.CurrentDirectory, outputWriteDocumentAsyncPuml);
+
+            if (OperatingSystem.IsWindows())
+            {
+                _writeFileSync = _writeFileSync.Replace("/", "\\");
+                _writeFileAsync = _writeFileAsync.Replace("/", "\\");
+                _writeDocumentSync = _writeDocumentSync.Replace("/", "\\");
+                _writeDocumentAsync = _writeDocumentAsync.Replace("/", "\\");
+            }
+
+            var dir = Path.GetDirectoryName(Path.Combine(Environment.CurrentDirectory, _writeFileSync));
 
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
         }
@@ -44,7 +59,6 @@ namespace PlantUml.Reflector.xUnit
                 var clip = typeHolder.Generate(Layers.TypeEnd, true);
                 Assert.NotNull(clip);
                 clips.Add((clip, Layers.TypeEnd));
-                clipPuml += clip.ToString(Layers.TypeEnd);
             }
             foreach (var type in types)
             {
@@ -54,7 +68,13 @@ namespace PlantUml.Reflector.xUnit
                 var clip = typeHolder.Generate(Layers.Relationships | Layers.Inheritance, true);
                 Assert.NotNull(clip);
                 clips.Add((clip, Layers.Relationships | Layers.Inheritance));
-                clipPuml += clip.ToString(Layers.Relationships | Layers.Inheritance);
+            }
+
+            foreach (var (clip, layers) in clips)
+            {
+                var puml = clip.ToString(layers);
+
+                clipPuml += puml;
             }
 
             clipPuml += "\n@enduml";
@@ -66,30 +86,30 @@ namespace PlantUml.Reflector.xUnit
         [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
         public void WriteDocumentSync(params Type[] types)
         {
-            if(File.Exists(OutputWriteDocumentSyncPuml)) File.Delete(OutputWriteDocumentSyncPuml);
+            if (File.Exists(_writeDocumentSync)) File.Delete(_writeDocumentSync);
 
             var writer = new PumlWriter();
 
             var (clipPuml, clips) = GeneratePuml(types);
 
             var document = new PumlDocument
-                           {
-                               Clips = clips,
-                               Title = Path.GetFileName(OutputWriteDocumentSyncPuml),
-                               Direction = PumlDirection.TopToBottom,
-                               LineMode = PumlLineMode.Orthogonal,
-                               HeaderComment = "This is a header comment.",
-                               FooterNote = "Testing...",
-                               Styles = @"skinparam class {
+            {
+                Clips = clips,
+                Title = Path.GetFileName(_writeDocumentSync),
+                Direction = PumlDirection.TopToBottom,
+                LineMode = PumlLineMode.Orthogonal,
+                HeaderComment = "This is a header comment.",
+                FooterNote = "Testing...",
+                Styles = @"skinparam class {
     BackgroundColor #cfcfcf
     ArrowColor Navy
     BorderColor Navy
 }" + Environment.NewLine
-                           };
+            };
 
-            writer.WriteFile(OutputWriteDocumentSyncPuml, document).Close();
+            writer.WriteFile(_writeDocumentSync, document).Close();
 
-            var puml = File.ReadAllText(OutputWriteDocumentSyncPuml);
+            var puml = File.ReadAllText(_writeDocumentSync);
 
             Output.WriteLine(new string('=', 80));
             Output.WriteLine(puml);
@@ -105,30 +125,30 @@ namespace PlantUml.Reflector.xUnit
         [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
         public async Task WriteDocumentAsync(params Type[] types)
         {
-            if(File.Exists(OutputWriteDocumentAsyncPuml)) File.Delete(OutputWriteDocumentAsyncPuml);
+            if (File.Exists(_writeDocumentAsync)) File.Delete(_writeDocumentAsync);
 
             var writer = new PumlWriter();
 
             var (clipPuml, clips) = GeneratePuml(types);
 
             var document = new PumlDocument
-                           {
-                               Clips = clips,
-                               Title = Path.GetFileName(OutputWriteDocumentAsyncPuml),
-                               Direction = PumlDirection.TopToBottom,
-                               LineMode = PumlLineMode.Orthogonal,
-                               HeaderComment = "This is a header comment.",
-                               FooterNote = "Testing...",
-                               Styles = @"skinparam class {
+            {
+                Clips = clips,
+                Title = Path.GetFileName(_writeDocumentAsync),
+                Direction = PumlDirection.TopToBottom,
+                LineMode = PumlLineMode.Orthogonal,
+                HeaderComment = "This is a header comment.",
+                FooterNote = "Testing...",
+                Styles = @"skinparam class {
     BackgroundColor #cfcfcf
     ArrowColor Navy
     BorderColor Navy
 }" + Environment.NewLine
-                           };
+            };
 
-            (await writer.WriteFileAsync(OutputWriteDocumentAsyncPuml, document)).Close();
+            (await writer.WriteFileAsync(_writeDocumentAsync, document)).Close();
 
-            var puml = await File.ReadAllTextAsync(OutputWriteDocumentAsyncPuml);
+            var puml = await File.ReadAllTextAsync(_writeDocumentAsync);
 
             Output.WriteLine(new string('=', 80));
             Output.WriteLine(puml);
@@ -150,19 +170,19 @@ namespace PlantUml.Reflector.xUnit
             var (clipPuml, clips) = GeneratePuml(types);
 
             var document = new PumlDocument
-                           {
-                               Clips = clips,
-                               Title = Path.GetFileName(OutputWriteDocumentSyncPuml),
-                               Direction = PumlDirection.TopToBottom,
-                               LineMode = PumlLineMode.Orthogonal,
-                               HeaderComment = "This is a header comment.",
-                               FooterNote = "Testing...",
-                               Styles = @"skinparam class {
+            {
+                Clips = clips,
+                Title = Path.GetFileName(_writeDocumentSync),
+                Direction = PumlDirection.TopToBottom,
+                LineMode = PumlLineMode.Orthogonal,
+                HeaderComment = "This is a header comment.",
+                FooterNote = "Testing...",
+                Styles = @"skinparam class {
     BackgroundColor #cfcfcf
     ArrowColor Navy
     BorderColor Navy
 }" + Environment.NewLine
-                           };
+            };
 
             writer.WriteStream(stream, document);
 
@@ -194,19 +214,19 @@ namespace PlantUml.Reflector.xUnit
             var (clipPuml, clips) = GeneratePuml(types);
 
             var document = new PumlDocument
-                           {
-                               Clips = clips,
-                               Title = Path.GetFileName(OutputWriteDocumentAsyncPuml),
-                               Direction = PumlDirection.TopToBottom,
-                               LineMode = PumlLineMode.Orthogonal,
-                               HeaderComment = "This is a header comment.",
-                               FooterNote = "Testing...",
-                               Styles = @"skinparam class {
+            {
+                Clips = clips,
+                Title = Path.GetFileName(_writeDocumentAsync),
+                Direction = PumlDirection.TopToBottom,
+                LineMode = PumlLineMode.Orthogonal,
+                HeaderComment = "This is a header comment.",
+                FooterNote = "Testing...",
+                Styles = @"skinparam class {
     BackgroundColor #cfcfcf
     ArrowColor Navy
     BorderColor Navy
 }" + Environment.NewLine
-                           };
+            };
 
             await writer.WriteStreamAsync(stream, document);
 
@@ -232,15 +252,15 @@ namespace PlantUml.Reflector.xUnit
         [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
         public void WriteFileSync(params Type[] types)
         {
-            if(File.Exists(OutputWriteFileSyncPuml)) File.Delete(OutputWriteFileSyncPuml);
+            if (File.Exists(_writeFileSync)) File.Delete(_writeFileSync);
 
             var writer = new PumlWriter();
 
             var (clipPuml, clips) = GeneratePuml(types);
 
-            writer.WriteFile(OutputWriteFileSyncPuml, clips).Close();
+            writer.WriteFile(_writeFileSync, clips).Close();
 
-            var puml = File.ReadAllText(OutputWriteFileSyncPuml);
+            var puml = File.ReadAllText(_writeFileSync);
 
             Output.WriteLine(new string('=', 80));
             Output.WriteLine(puml);
@@ -256,15 +276,16 @@ namespace PlantUml.Reflector.xUnit
         [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
         public async Task WriteFileAsync(params Type[] types)
         {
-            if(File.Exists(OutputWriteFileAsyncPuml)) File.Delete(OutputWriteFileAsyncPuml);
+            Output.WriteLine(_writeFileAsync);
+            if (File.Exists(_writeFileAsync)) File.Delete(_writeFileAsync);
 
             var writer = new PumlWriter();
 
             var (clipPuml, clips) = GeneratePuml(types);
 
-            (await writer.WriteFileAsync(OutputWriteFileAsyncPuml, clips)).Close();
+            (await writer.WriteFileAsync(_writeFileAsync, clips)).Close();
 
-            var puml = await File.ReadAllTextAsync(OutputWriteFileAsyncPuml);
+            var puml = await File.ReadAllTextAsync(_writeFileAsync);
 
             Output.WriteLine(new string('=', 80));
             Output.WriteLine(puml);
