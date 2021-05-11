@@ -60,4 +60,14 @@ namespace PlantUml.Reflector
             return ToString(Layers.All);
         }
     }
+
+    public enum PumlDirection
+    {
+        TopToBottom, LeftToRight
+    }
+
+    public enum PumlLineMode
+    {
+        Default, Orthogonal, Polyline
+    }
 }

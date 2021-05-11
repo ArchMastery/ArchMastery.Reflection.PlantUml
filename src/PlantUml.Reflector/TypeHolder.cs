@@ -128,10 +128,8 @@ namespace PlantUml.Reflector
                 {
                     (true, _, _, _, _, _) => "class",
                     (_, true, _, _, _, _) => "abstract class",
-                    (_, _, true, _, _, _) => "enumeration",
-                    (_, _, _, true, _, _) => "array",
+                    (_, _, true, _, _, _) => "enum",
                     (_, _, _, _, true, _) => "interface",
-                    (_, _, _, _, _, true) => "struct",
                     _ => "entity"
                 };
 
@@ -560,7 +558,7 @@ namespace PlantUml.Reflector
                 $": {NormalizeName(GetArrayType(field.FieldType) ?? field.FieldType)}\n";
         }
 
-        private string? NormalizeName(Type? type)
+        public string? NormalizeName(Type? type)
         {
             if (type is null) return null;
 
@@ -742,7 +740,7 @@ namespace PlantUml.Reflector
         }
     }
 
-    internal static class Extensions
+    public static class PumlProcessingExtensions
     {
         private static readonly Regex Regex = new Regex(@"[^._0-9a-zA-Z]");
 

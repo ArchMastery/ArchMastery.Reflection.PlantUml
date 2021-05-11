@@ -29,4 +29,11 @@
     <ProjectReference Include="..\..\src\PlantUml.Reflector\PlantUml.Reflector.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="TestAssemblies\TestAssembly.dll" />
+    <Content Include="TestAssemblies\TestAssembly.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

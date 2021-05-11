@@ -17,11 +17,15 @@ namespace PlantUml.Reflector.xUnit
     {
         private const string OutputWriteFileSyncPuml = "./output/writeFileSync.puml";
         private const string OutputWriteFileAsyncPuml = "./output/writeFileAsync.puml";
+        private const string OutputWriteDocumentSyncPuml = "./output/writeDocumentSync.puml";
+        private const string OutputWriteDocumentAsyncPuml = "./output/writeDocumentAsync.puml";
 
         public WritingTests(ITestOutputHelper output) : base(output, LogLevel.Debug)
         {
             output.WriteLine(Path.Combine(Environment.CurrentDirectory, OutputWriteFileSyncPuml));
             output.WriteLine(Path.Combine(Environment.CurrentDirectory, OutputWriteFileAsyncPuml));
+            output.WriteLine(Path.Combine(Environment.CurrentDirectory, OutputWriteDocumentSyncPuml));
+            output.WriteLine(Path.Combine(Environment.CurrentDirectory, OutputWriteDocumentAsyncPuml));
 
             var dir = Path.GetDirectoryName(Path.Combine(Environment.CurrentDirectory, OutputWriteFileSyncPuml));
 
@@ -56,6 +60,172 @@ namespace PlantUml.Reflector.xUnit
             clipPuml += "\n@enduml";
 
             return (clipPuml, clips);
+        }
+
+        [Theory]
+        [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
+        public void WriteDocumentSync(params Type[] types)
+        {
+            if(File.Exists(OutputWriteDocumentSyncPuml)) File.Delete(OutputWriteDocumentSyncPuml);
+
+            var writer = new PumlWriter();
+
+            var (clipPuml, clips) = GeneratePuml(types);
+
+            var document = new PumlDocument
+                           {
+                               Clips = clips,
+                               Title = Path.GetFileName(OutputWriteDocumentSyncPuml),
+                               Direction = PumlDirection.TopToBottom,
+                               LineMode = PumlLineMode.Orthogonal,
+                               HeaderComment = "This is a header comment.",
+                               FooterNote = "Testing...",
+                               Styles = @"skinparam class {
+    BackgroundColor #cfcfcf
+    ArrowColor Navy
+    BorderColor Navy
+}" + Environment.NewLine
+                           };
+
+            writer.WriteFile(OutputWriteDocumentSyncPuml, document).Close();
+
+            var puml = File.ReadAllText(OutputWriteDocumentSyncPuml);
+
+            Output.WriteLine(new string('=', 80));
+            Output.WriteLine(puml);
+            Output.WriteLine(new string('=', 80));
+            //Output.WriteLine(clipPuml);
+            //Output.WriteLine(new string('=', 80));
+
+            puml.Should().NotBeNullOrWhiteSpace();
+            //puml.Should().BeEquivalentTo(clipPuml);
+        }
+
+        [Theory]
+        [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
+        public async Task WriteDocumentAsync(params Type[] types)
+        {
+            if(File.Exists(OutputWriteDocumentAsyncPuml)) File.Delete(OutputWriteDocumentAsyncPuml);
+
+            var writer = new PumlWriter();
+
+            var (clipPuml, clips) = GeneratePuml(types);
+
+            var document = new PumlDocument
+                           {
+                               Clips = clips,
+                               Title = Path.GetFileName(OutputWriteDocumentAsyncPuml),
+                               Direction = PumlDirection.TopToBottom,
+                               LineMode = PumlLineMode.Orthogonal,
+                               HeaderComment = "This is a header comment.",
+                               FooterNote = "Testing...",
+                               Styles = @"skinparam class {
+    BackgroundColor #cfcfcf
+    ArrowColor Navy
+    BorderColor Navy
+}" + Environment.NewLine
+                           };
+
+            (await writer.WriteFileAsync(OutputWriteDocumentAsyncPuml, document)).Close();
+
+            var puml = await File.ReadAllTextAsync(OutputWriteDocumentAsyncPuml);
+
+            Output.WriteLine(new string('=', 80));
+            Output.WriteLine(puml);
+            Output.WriteLine(new string('=', 80));
+            //Output.WriteLine(clipPuml);
+            //Output.WriteLine(new string('=', 80));
+
+            puml.Should().NotBeNullOrWhiteSpace();
+            //puml.Should().BeEquivalentTo(clipPuml);
+        }
+
+        [Theory]
+        [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
+        public void WriteDocumentStreamSync(params Type[] types)
+        {
+            var writer = new PumlWriter();
+            using var stream = new MemoryStream();
+
+            var (clipPuml, clips) = GeneratePuml(types);
+
+            var document = new PumlDocument
+                           {
+                               Clips = clips,
+                               Title = Path.GetFileName(OutputWriteDocumentSyncPuml),
+                               Direction = PumlDirection.TopToBottom,
+                               LineMode = PumlLineMode.Orthogonal,
+                               HeaderComment = "This is a header comment.",
+                               FooterNote = "Testing...",
+                               Styles = @"skinparam class {
+    BackgroundColor #cfcfcf
+    ArrowColor Navy
+    BorderColor Navy
+}" + Environment.NewLine
+                           };
+
+            writer.WriteStream(stream, document);
+
+            stream.Seek(0, SeekOrigin.Begin);
+
+            var buffer = new Span<byte>(new byte[stream.Length]);
+
+            stream.Read(buffer);
+
+            var puml = writer.Encoding.GetString(buffer.ToArray());
+
+            Output.WriteLine(new string('=', 80));
+            Output.WriteLine(puml);
+            Output.WriteLine(new string('=', 80));
+            //Output.WriteLine(clipPuml);
+            //Output.WriteLine(new string('=', 80));
+
+            puml.Should().NotBeNullOrWhiteSpace();
+            //puml.Should().BeEquivalentTo(clipPuml);
+        }
+
+        [Theory]
+        [InlineData(typeof(TestClass<>), typeof(Extensions), typeof(TestBase<>), typeof(MyEntity))]
+        public async Task WriteDocumentStreamAsync(params Type[] types)
+        {
+            var writer = new PumlWriter();
+            await using var stream = new MemoryStream();
+
+            var (clipPuml, clips) = GeneratePuml(types);
+
+            var document = new PumlDocument
+                           {
+                               Clips = clips,
+                               Title = Path.GetFileName(OutputWriteDocumentAsyncPuml),
+                               Direction = PumlDirection.TopToBottom,
+                               LineMode = PumlLineMode.Orthogonal,
+                               HeaderComment = "This is a header comment.",
+                               FooterNote = "Testing...",
+                               Styles = @"skinparam class {
+    BackgroundColor #cfcfcf
+    ArrowColor Navy
+    BorderColor Navy
+}" + Environment.NewLine
+                           };
+
+            await writer.WriteStreamAsync(stream, document);
+
+            stream.Seek(0, SeekOrigin.Begin);
+
+            var buffer = new Memory<byte>(new byte[stream.Length]);
+
+            await stream.ReadAsync(buffer);
+
+            var puml = writer.Encoding.GetString(buffer.ToArray());
+
+            Output.WriteLine(new string('=', 80));
+            Output.WriteLine(puml);
+            Output.WriteLine(new string('=', 80));
+            //Output.WriteLine(clipPuml);
+            //Output.WriteLine(new string('=', 80));
+
+            puml.Should().NotBeNullOrWhiteSpace();
+            //puml.Should().BeEquivalentTo(clipPuml);
         }
 
         [Theory]
