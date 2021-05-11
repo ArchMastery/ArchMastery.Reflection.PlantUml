@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace PlantUml.Reflector
 {
-    public class PumlDocument
+    public record PumlDocument
     {
         public string Title { get; init; }
 

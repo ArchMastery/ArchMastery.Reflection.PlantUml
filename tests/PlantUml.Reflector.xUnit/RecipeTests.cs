@@ -19,6 +19,120 @@ namespace PlantUml.Reflector.xUnit
         }
 
 
+        private PumlDocument _document = new ()
+        {
+            Direction = PumlDirection.LeftToRight,
+            LineMode = PumlLineMode.Orthogonal,
+            FooterNote = "From Test"
+        };
+
+        [Theory]
+        [InlineData(AssemblyPath, Layers.All, true)]
+        public void WriteDocumentPerType(string assemblyPath, Layers layers, bool includeAttributes)
+        {
+            if (OperatingSystem.IsWindows()) assemblyPath = assemblyPath.Replace("/", "\\");
+            var path = Path.Combine(Environment.CurrentDirectory, assemblyPath);
+            var assembly = Assembly.LoadFile(path);
+
+            assembly.Should().NotBeNull();
+
+            var directoryInfo = new DirectoryInfo($"{Path.GetFileNameWithoutExtension(path)}\\PerType");
+
+            if (directoryInfo.Exists && directoryInfo.GetFiles().Length > 0)
+            {
+                directoryInfo.GetFiles().Select(f => f.FullName).ToList().ForEach(File.Delete);
+            }
+
+            var types = assembly.GetTypes().Where(t => t.ToString() != "<PrivateImplementationDetails>");
+            types = types.Where(t => t.GetCustomAttribute(typeof(CompilerGeneratedAttribute)) is null);
+
+            var result = new[] { assembly }.WriteAll(
+                directoryInfo,
+                WriteStrategy.OneFilePerType,
+                layers,
+                _document,
+                includeAttributes);
+
+            result.Should().NotBeNullOrEmpty();
+            result.Count.Should().Be(types.Count());
+
+            var file = result.First();
+
+            file.Should().NotBeNull();
+            File.Exists(file.FullName).Should().BeTrue();
+            Output.WriteLine(file.FullName);
+        }
+        [Theory]
+        [InlineData(AssemblyPath, Layers.All, true)]
+        public void WriteDocumentPerNamespace(string assemblyPath, Layers layers, bool includeAttributes)
+        {
+            if (OperatingSystem.IsWindows()) assemblyPath = assemblyPath.Replace("/", "\\");
+            var path = Path.Combine(Environment.CurrentDirectory, assemblyPath);
+            var assembly = Assembly.LoadFile(path);
+
+            assembly.Should().NotBeNull();
+
+            var directoryInfo = new DirectoryInfo($"{Path.GetFileNameWithoutExtension(path)}\\PerNamespace");
+
+            if (directoryInfo.Exists && directoryInfo.GetFiles().Length > 0)
+            {
+                directoryInfo.GetFiles().Select(f => f.FullName).ToList().ForEach(File.Delete);
+            }
+
+            var types = assembly.GetTypes().Where(t => t.ToString() != "<PrivateImplementationDetails>");
+            types = types.Where(t => t.GetCustomAttribute(typeof(CompilerGeneratedAttribute)) is null);
+            var namespaces = types.GroupBy(t => t.Namespace);
+
+            var result = new[] { assembly }.WriteAll(
+                directoryInfo,
+                WriteStrategy.OneFilePerNamespace,
+                layers,
+                _document,
+                includeAttributes);
+
+            result.Should().NotBeNullOrEmpty();
+            result.Count.Should().Be(namespaces.Count());
+
+            var file = result.First();
+
+            file.Should().NotBeNull();
+            File.Exists(file.FullName).Should().BeTrue();
+            Output.WriteLine(file.FullName);
+        }
+        [Theory]
+        [InlineData(AssemblyPath, Layers.All, true)]
+        public void WriteDocumentPerAssembly(string assemblyPath, Layers layers, bool includeAttributes)
+        {
+            if (OperatingSystem.IsWindows()) assemblyPath = assemblyPath.Replace("/", "\\");
+            var path = Path.Combine(Environment.CurrentDirectory, assemblyPath);
+            var assembly = Assembly.LoadFile(path);
+
+            assembly.Should().NotBeNull();
+
+            var directoryInfo = new DirectoryInfo($"{Path.GetFileNameWithoutExtension(path)}\\PerAssembly");
+
+            if (directoryInfo.Exists && directoryInfo.GetFiles().Length > 0)
+            {
+                directoryInfo.GetFiles().Select(f => f.FullName).ToList().ForEach(File.Delete);
+            }
+
+            var result = new[] { assembly }.WriteAll(
+                directoryInfo,
+                WriteStrategy.OneFilePerAssembly,
+                layers,
+                _document,
+                includeAttributes);
+
+            result.Should().NotBeNullOrEmpty();
+            result.Count.Should().Be(1);
+
+            var file = result.First();
+
+            file.Should().NotBeNull();
+            File.Exists(file.FullName).Should().BeTrue();
+            Output.WriteLine(file.FullName);
+        }
+
         [Theory]
         [InlineData(AssemblyPath, Layers.All, true)]
         public void WriteFilePerType(string assemblyPath, Layers layers, bool includeAttributes)
@@ -43,6 +157,7 @@ namespace PlantUml.Reflector.xUnit
                 directoryInfo,
                 WriteStrategy.OneFilePerType,
                 layers,
+                null,
                 includeAttributes);
 
             result.Should().NotBeNullOrEmpty();
@@ -79,6 +194,7 @@ namespace PlantUml.Reflector.xUnit
                 directoryInfo,
                 WriteStrategy.OneFilePerNamespace,
                 layers,
+                null,
                 includeAttributes);
 
             result.Should().NotBeNullOrEmpty();
@@ -111,6 +227,7 @@ namespace PlantUml.Reflector.xUnit
                 directoryInfo,
                 WriteStrategy.OneFilePerAssembly,
                 layers,
+                null,
                 includeAttributes);
 
             result.Should().NotBeNullOrEmpty();

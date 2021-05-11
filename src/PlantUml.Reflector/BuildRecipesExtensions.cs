@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace PlantUml.Reflector
 {
@@ -15,7 +16,7 @@ namespace PlantUml.Reflector
     {
 
         public static List<FileInfo> WriteAll(this IEnumerable<Assembly> assemblies, DirectoryInfo directory,  WriteStrategy strategy,
-            Layers layers = Layers.All, bool showAttributes = false)
+            Layers layers = Layers.All, PumlDocument document = null, bool showAttributes = false)
         {
             if(!directory.Exists) directory.Create();
 
@@ -28,33 +29,76 @@ namespace PlantUml.Reflector
             }
 
             List<FileInfo> result = new ();
+            FileStream fs = null;
             switch (strategy)
             {
                 case WriteStrategy.OneFile:
-                    var oneFileFilename = Path.Combine(directory.FullName, "AllTypes.puml");
-                    var oneFileFs = writer.WriteFile(oneFileFilename, clips);
-                    oneFileFs.Close();
-                    result.Add(new FileInfo(oneFileFs.Name));
+                    if (document is not null)
+                    {
+                        var oneFileFilename = Path.Combine(directory.FullName, "AllTypesDocument.puml");
+                        document = document with
+                        {
+                            Title = document.Title ?? "All Types",
+                            Clips = clips
+                        };
+                        fs = writer.WriteFile(oneFileFilename, document);
+                    }
+                    else
+                    {
+                        var oneFileFilename = Path.Combine(directory.FullName, "AllTypes.puml");
+                        fs = writer.WriteFile(oneFileFilename, clips);
+                    }
+                    fs.Close();
+                    result.Add(new FileInfo(fs.Name));
                     break;
 
                 case WriteStrategy.OneFilePerType:
-                    foreach (var typeFs in clips
+                    var toProcess = clips
                         .GroupBy(c => $"{c.clip.Namespace}.{c.clip.TypeName}")
-                        .Select(group => (Path.Combine(directory.FullName, group.Key.AsSlug() + ".puml"), group))
-                        .Select(pair => writer.WriteFile(pair.Item1, pair.group)))
+                        .Select(group => (Path.Combine(directory.FullName, group.Key.AsSlug() + ".puml"), group));
+
+                    foreach (var (filename, group) in toProcess)
                     {
-                        typeFs.Close();
-                        result.Add(new FileInfo(typeFs.Name));
+                        if (document is not null)
+                        {
+                            var newName = filename.Split('.').ToList();
+                            newName.Insert(newName.Count - 1, "Document");
+                            document = document with
+                            {
+                                Title = document.Title ?? group.Key,
+                                Clips = group
+                            };
+                            fs = writer.WriteFile(string.Join(".", newName), document);
+                        }
+                        else
+                        {
+                            fs = writer.WriteFile(filename, group);
+                        }
+                        fs.Close();
+                        result.Add(new FileInfo(fs.Name));
                     }
                     break;
 
                 case WriteStrategy.OneFilePerNamespace:
                     foreach (var group in clips.GroupBy(c => c.clip.Namespace))
                     {
-                        var typeFilename = Path.Combine(directory.FullName, group.Key.AsSlug() + ".puml");
-                        var typeFs = writer.WriteFile(typeFilename, group);
-                        typeFs.Close();
-                        result.Add(new FileInfo(typeFs.Name));
+                        if (document is not null)
+                        {
+                            var typeFilename = Path.Combine(directory.FullName, group.Key.AsSlug() + "Document.puml");
+                            document = document with
+                            {
+                                Title = document.Title ?? group.Key,
+                                Clips = clips
+                            };
+                            fs = writer.WriteFile(typeFilename, document);
+                        }
+                        else
+                        {
+                            var typeFilename = Path.Combine(directory.FullName, group.Key.AsSlug() + ".puml");
+                            fs = writer.WriteFile(typeFilename, clips);
+                        }
+                        fs.Close();
+                        result.Add(new FileInfo(fs.Name));
                     }
                     break;
 
@@ -63,9 +107,21 @@ namespace PlantUml.Reflector
                     {
                         var filename = group.Key.GetName().Name!.AsSlug();
                         var typeFilename = Path.Combine(directory.FullName, $"{filename}.puml");
-                        var typeFs = writer.WriteFile(typeFilename, group);
-                        typeFs.Close();
-                        result.Add(new FileInfo(typeFs.Name));
+                        if (document is not null)
+                        {
+                            document = document with
+                            {
+                                Title = document.Title ?? group.Key.GetName().FullName,
+                                Clips = clips
+                            };
+                            fs = writer.WriteFile(typeFilename, document);
+                        }
+                        else
+                        {
+                            fs = writer.WriteFile(typeFilename, clips);
+                        }
+                        fs.Close();
+                        result.Add(new FileInfo(fs.Name));
                     }
                     break;
 

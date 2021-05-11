@@ -361,7 +361,7 @@ namespace PlantUml.Reflector
 
                 var relationship = (Layers.Relationships,
                     field.FieldType.IsArray
-                        ? $"{objectName.AsSlug()} o- {arrayElementType?.AsSlug()} : {field.Name} << aggregation[] >> "
+                        ? $"{objectName.AsSlug()} o- {arrayElementType?.AsSlug()} : {field.Name} << aggregation >> "
                         : genericCollectionType != typeof(object)
                             ? $"{objectName.AsSlug()} o- {genericCollectionTypeName?.AsSlug()} : {field.Name} << aggregation >>"
                             : $"{objectName.AsSlug()} -> {fieldTypeName.AsSlug()} : {field.Name} << use >>");
@@ -408,7 +408,7 @@ namespace PlantUml.Reflector
 
                 var relationship = (Layers.Relationships,
                     property.PropertyType.IsArray
-                        ? $"{objectName.AsSlug()} o- {arrayElementType?.AsSlug()} : {property.Name} << aggregation[] >>"
+                        ? $"{objectName.AsSlug()} o- {arrayElementType?.AsSlug()} : {property.Name} << aggregation >>"
                         : genericCollectionType != typeof(object)
                             ? $"{objectName.AsSlug()} o- {genericCollectionTypeName?.AsSlug()} : {property.Name} << aggregation >>"
                             : $"{objectName.AsSlug()} -> {propertyTypeName.AsSlug()} : {property.Name} << use >>");
