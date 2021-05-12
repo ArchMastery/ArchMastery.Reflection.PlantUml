@@ -28,6 +28,6 @@ jobs:
         # Filepath of the project to be packaged, relative to root of repository
         PROJECT_FILE_PATH: src/PlantUml.Reflector/PlantUml.Reflector.csproj
         # API key to authenticate with NuGet server
-        NUGET_KEY: ${{ secrets.nuget }}
+        NUGET_KEY: ${{ secrets.NUGET }}
         # NuGet server uri hosting the packages, defaults to https://api.nuget.org
         INCLUDE_SYMBOLS: true
