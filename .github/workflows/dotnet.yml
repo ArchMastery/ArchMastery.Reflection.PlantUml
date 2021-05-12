@@ -1,7 +1,6 @@
 name: .NET
 
-on:
-  release: [create, update]
+on: release
     
 
 jobs:
