@@ -4,6 +4,16 @@
         <TargetFramework>net5.0</TargetFramework>
         <AssemblyVersion>2021.0511.34.38642</AssemblyVersion>
         <FileVersion>2021.0511.34.38642</FileVersion>
+        <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+        <Authors>The Sharp Ninja &lt;ninja@thesharp.ninja&gt;</Authors>
+        <Description>Generate UML Class Diagrams with PlantUML by reflecting over Dotnet Assemblies.</Description>
+        <Copyright>2021</Copyright>
+        <PackageProjectUrl>https://github.com/sharpninja/CSharpToPlantUML</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/sharpninja/CSharpToPlantUML</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>uml; plant uml;</PackageTags>
+        <NeutralLanguage>en</NeutralLanguage>
+        <Version>2021.0511.34.38642</Version>
     </PropertyGroup>
 
 </Project>
