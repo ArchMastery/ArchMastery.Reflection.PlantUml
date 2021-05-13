@@ -1,7 +1,8 @@
 name: .NET
 
-on: release
-    
+on: 
+  release: 
+  - published
 
 jobs:
   build:
