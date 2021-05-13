@@ -18,4 +18,8 @@
             };
         }
     }
+
+    namespace System.Runtime.CompilerServices
+    {
+    }
 }

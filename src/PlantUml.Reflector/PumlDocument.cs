@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace PlantUml.Reflector
@@ -16,6 +17,6 @@ namespace PlantUml.Reflector
         public string FooterNote { get; init; }
 
         public IEnumerable<(PumlClip clip, Layers layer)> Clips { get; init; } =
-            System.Array.Empty<(PumlClip clip, Layers layer)>();
+            Array.Empty<(PumlClip clip, Layers layer)>();
     }
 }

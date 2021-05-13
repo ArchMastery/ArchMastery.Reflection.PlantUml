@@ -14,7 +14,7 @@ namespace PlantUml.Reflector
         {
             var stream = new FileStream(path, FileMode.Append | FileMode.OpenOrCreate);
 
-            stream.Write(Encoding.GetBytes("@startuml\n"));
+            stream.Write( Encoding.GetBytes("@startuml\n"));
 
             foreach (var (clip, layers) in clips)
             {
@@ -183,5 +183,17 @@ namespace PlantUml.Reflector
             return stream;
         }
 
+    }
+
+    public static class StreamExtensions
+    {
+        public static void Write(this Stream stream, byte[] bytes)
+        {
+            stream.Write(bytes, 0, bytes.Length);
+        }
+        public static Task WriteAsync(this Stream stream, byte[] bytes)
+        {
+            return stream.WriteAsync(bytes, 0, bytes.Length);
+        }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -7,8 +6,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
-using Microsoft.VisualBasic.CompilerServices;
-using Microsoft.VisualBasic.FileIO;
 // ReSharper disable UnusedMember.Global
 
 #nullable enable
@@ -602,7 +599,11 @@ namespace PlantUml.Reflector
                 typeName = $"{parentName}.{genericType.Name}";
             }
 
+#if !NET5_0
+            var result = $"{typeName.Substring(0, typeName.IndexOf("`", StringComparison.Ordinal))}{genericTypes}";
+#else
             var result = $"{typeName[..typeName.IndexOf("`", StringComparison.Ordinal)]}{genericTypes}";
+#endif
 
             return result;
 
@@ -715,7 +716,11 @@ namespace PlantUml.Reflector
 
             if (name.StartsWith("get_") || name.StartsWith("set_") || name.StartsWith("init_"))
             {
+#if NET5_0
                 name = name[..name.IndexOf("_", StringComparison.Ordinal)] + ";";
+#else
+                name = name.Substring(0,name.IndexOf("_", StringComparison.Ordinal)) + ";";
+#endif
             }
 
             Regex regex = new(@"`[1-9]\[\[([^,\s]*).*\]\]");
@@ -723,7 +728,7 @@ namespace PlantUml.Reflector
             if (regex.IsMatch(name))
             {
                 var match = regex.Match(name);
-                var result = $"<{match.Groups.Values.LastOrDefault()?.Value}>";
+                var result = $"<{match.Groups.Cast<Group>().LastOrDefault()?.Value}>";
                 name = regex.Replace(name, result);
             }
             else

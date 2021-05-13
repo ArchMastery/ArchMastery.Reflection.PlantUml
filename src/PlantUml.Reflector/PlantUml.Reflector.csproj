@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net5.0</TargetFramework>
-        <AssemblyVersion>2021.0511.34.38642</AssemblyVersion>
-        <FileVersion>2021.0511.34.38642</FileVersion>
+        <TargetFrameworks>netcoreapp3.1;netstandard2.0;net5.0</TargetFrameworks>
+        <AssemblyVersion>2021.0513.0.214</AssemblyVersion>
+        <FileVersion>2021.0513.0.214</FileVersion>
         <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
         <Authors>The Sharp Ninja &lt;ninja@thesharp.ninja&gt;</Authors>
         <Description>Generate UML Class Diagrams with PlantUML by reflecting over Dotnet Assemblies.</Description>
@@ -14,6 +14,9 @@
         <PackageTags>uml; plant uml;</PackageTags>
         <NeutralLanguage>en</NeutralLanguage>
         <Version>2021.0511.34.38642</Version>
+        <LangVersion>9.0</LangVersion>
     </PropertyGroup>
-
+    <ItemGroup>
+        <Compile Remove="IsExternalInit.cs" Condition="'$(TargetFramework)' == 'net5.0'" />
+    </ItemGroup>
 </Project>
