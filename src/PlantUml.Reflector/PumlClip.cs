@@ -26,7 +26,7 @@ namespace PlantUml.Reflector
             _version++;
         }
 
-        public ObservableCollection<(Layers, string)> Segments { get; set; } = new ();
+        public ObservableCollection<IMemberHolder> Segments { get; set; } = new ();
         public int Version => _version;
         public string TypeName { get; }
         public string Namespace { get; }
@@ -43,9 +43,9 @@ namespace PlantUml.Reflector
 
                 var toRender = (layers switch
                 {
-                    Layers.All => Segments.GroupBy(tuple => tuple.Item1, tuple => tuple.Item2),
-                    _ => Segments.Where(tuple => tuple.Item1 <= layers)
-                        .GroupBy(tuple => tuple.Item1, tuple => tuple.Item2)
+                    Layers.All => Segments.GroupBy(member => member.Segment.layers, member => member.Segment.segment),
+                    _ => Segments.Where(member => member.Segment.layers <= layers)
+                        .GroupBy(member => member.Segment.layers, member => member.Segment.segment)
 
                 }).OrderBy(g => (int)g.Key);
 
@@ -72,15 +72,5 @@ namespace PlantUml.Reflector
         {
             return ToString(Layers.All);
         }
-    }
-
-    public enum PumlDirection
-    {
-        TopToBottom, LeftToRight
-    }
-
-    public enum PumlLineMode
-    {
-        Default, Orthogonal, Polyline
     }
 }

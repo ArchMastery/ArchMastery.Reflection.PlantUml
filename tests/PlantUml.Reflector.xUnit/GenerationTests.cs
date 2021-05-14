@@ -1,7 +1,7 @@
 using System;
-
+using System.Linq;
 using Divergic.Logging.Xunit;
-
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 
 using Xunit;
@@ -27,10 +27,16 @@ namespace PlantUml.Reflector.xUnit
             TypeHolder typeHolder = new(type);
 
             Assert.NotNull(typeHolder);
-            var clip = typeHolder.Generate(Layers.Type);
+            var clip = typeHolder.Generate(Layers.All);
             Assert.NotNull(clip);
             Assert.NotEmpty(clip.ToString().ToCharArray());
 
+            typeHolder.DisplayName.Should().NotBeNullOrWhiteSpace();
+            typeHolder.Slug.Should().NotBeNullOrWhiteSpace();
+            typeHolder.Members.Count().Should().Be(clip.Segments.Count);
+
+            Output.WriteLine($"{type.FullName}: {typeHolder.DisplayName}, {typeHolder.Slug}");
+            Output.WriteLine(new string('-', 80));
             Output.WriteLine($"@startuml\n{clip}\n@enduml");
         }
 

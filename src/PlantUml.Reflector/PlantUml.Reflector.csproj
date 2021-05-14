@@ -13,7 +13,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageTags>uml; plant uml;</PackageTags>
         <NeutralLanguage>en</NeutralLanguage>
-        <Version>2021.0513.0.214</Version>
+        <Version>$(AssemblyVersion)</Version>
         <LangVersion>9.0</LangVersion>
     </PropertyGroup>
     <ItemGroup>

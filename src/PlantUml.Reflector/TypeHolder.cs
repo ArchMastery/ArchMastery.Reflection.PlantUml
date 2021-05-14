@@ -13,11 +13,18 @@ namespace PlantUml.Reflector
 {
     public class TypeHolder
     {
+        private readonly List<IMemberHolder> _members;
         public Type ObjectType { get; }
+
+        public string Slug => NormalizeName(ObjectType).AsSlug();
+        public string DisplayName { get; private set; }
+
+        public IEnumerable<IMemberHolder> Members => _members;
 
         public TypeHolder(Type objectType)
         {
             ObjectType = objectType;
+            _members = new List<IMemberHolder>();
         }
 
         public IEnumerable<string> Exclusions { get; set; } =
@@ -34,12 +41,12 @@ namespace PlantUml.Reflector
             var version = result.Version;
 
             var layerMap = (
-                (layers & Layers.Type),
-                (layers & Layers.Inheritance),
-                (layers & Layers.NonPublic),
-                (layers & Layers.Public),
-                (layers & Layers.Relationships),
-                (layers & Layers.Notes)
+                layers & Layers.Type,
+                layers & Layers.Inheritance,
+                layers & Layers.NonPublic,
+                layers & Layers.Public,
+                layers & Layers.Relationships,
+                layers & Layers.Notes
             );
 
             GetObject(layers, layerMap, result, typeFullName, version, showAttributes);
@@ -61,32 +68,41 @@ namespace PlantUml.Reflector
             if (layerMap is not (_, Layers.Inheritance, _, _, _, _)) return;
 
             var baseName = NormalizeName(ObjectType.BaseType ?? typeof(object));
-            result.Segments.Add((Layers.Inheritance, @$"{ObjectType.BaseType?.Name switch
+
+            var inheritenceSegment = ObjectType.BaseType?.Name switch
             {
                 "Object" => string.Empty,
                 null => string.Empty,
                 _ => GetExtends(ObjectType.BaseType.FullName ?? $"{ObjectType.BaseType.Namespace}.{baseName}")
-            }}"));
+            };
 
-            string GetExtends(string baseName)
+            var member = CreateMemberHolder<TypeInfo>(ObjectType.GetTypeInfo(), (Layers.Inheritance, inheritenceSegment));
+
+            result.Segments.Add(member);
+
+            string GetExtends(string innerBaseName)
             {
-                var skip = Exclusions.Any(baseName.StartsWith);
-                return !skip ? $"{typeFullName.AsSlug()} -u-|> {baseName.AsSlug()} : extends" : string.Empty;
+                var skip = Exclusions.Any(innerBaseName.StartsWith);
+                return !skip ? $"{typeFullName.AsSlug()} -u-|> {innerBaseName.AsSlug()} : extends" : string.Empty;
             }
 
             ObjectType.GetInterfaces().OrderBy(i => i.FullName).ToList().ForEach(intfType =>
             {
-                var baseName = NormalizeName(intfType);
-                var interfaceName = NormalizeNameString(intfType.FullName ?? $"{intfType.Namespace}.{baseName}");
-                
-                if (!Exclusions.Any(e => interfaceName.StartsWith(e)))
+                var normalizedName = NormalizeName(intfType);
+                var interfaceName = NormalizeNameString(intfType.FullName ?? $"{intfType.Namespace}.{normalizedName}");
+
+                if (Exclusions.Any(e => interfaceName.StartsWith(e))) return;
+
+                var innerSegment = intfType.Name switch
                 {
-                    result.Segments.Add((Layers.Inheritance, @$"{(intfType.Name switch
-                    {
-                        "INullable" => string.Empty,
-                        _ => $"{typeFullName.AsSlug()} --() {interfaceName.AsSlug()} : implements"
-                    })}"));
-                }
+                    "INullable" => string.Empty,
+                    _ => $"{typeFullName.AsSlug()} --() {interfaceName.AsSlug()} : implements"
+                };
+
+                var innerMember =
+                    CreateMemberHolder<TypeInfo>(ObjectType.GetTypeInfo(), (Layers.Inheritance, innerSegment));
+
+                result.Segments.Add(innerMember);
             });
         }
 
@@ -101,15 +117,9 @@ namespace PlantUml.Reflector
                 string typeName = NormalizeNameString(ObjectType.Name);
                 string genericTypes = string.Empty;
 
-                var genericType = ObjectType.IsGenericTypeDefinition
-                    ? ObjectType
-                    : ObjectType.IsGenericType
-                        ? ObjectType.GetGenericTypeDefinition()
-                        : null;
-
-                if (genericType is not null)
+                if (ObjectType.IsGenericType)
                 {
-                    var args = genericType.GetGenericArguments();
+                    var args = ObjectType.GetGenericArguments();
 
                     genericTypes = string.Join(", ",
                         args.Select(NormalizeName));
@@ -118,7 +128,7 @@ namespace PlantUml.Reflector
 
                 var typeMap =
                     (ObjectType.IsClass && !ObjectType.IsAbstract,
-                        ObjectType.IsClass && ObjectType.IsAbstract, 
+                        ObjectType.IsClass && ObjectType.IsAbstract,
                         ObjectType.IsEnum, ObjectType.IsArray, ObjectType.IsInterface,
                         ObjectType.IsValueType);
 
@@ -136,22 +146,41 @@ namespace PlantUml.Reflector
                 var staticObject = ObjectType.IsAbstract && ObjectType.IsSealed
                     ? "<< static >> " : string.Empty;
 
-                result.Segments.Add((Layers.Type, @$"
-{objectType} ""{typeName}{genericTypes}"" as {typeFullName.AsSlug()} 
-{objectType} {typeFullName.AsSlug()} {staticObject}{{" + 
-(showAttributes ? $"\n\t--- attributes ---\n{attributes}" : string.Empty)));
+                DisplayName = $"{typeName}{genericTypes}";
+
+                var segment = @$"
+{objectType} ""{DisplayName}"" as {typeFullName.AsSlug()} 
+{objectType} {typeFullName.AsSlug()} {staticObject}{{" +
+                              (showAttributes ? $"\n\t--- attributes ---\n{attributes}" : string.Empty);
+
+                var member = CreateMemberHolder<TypeInfo>(ObjectType.GetTypeInfo(), (Layers.Type, segment));
+
+                result.Segments.Add(member);
             }
 
             GetMembers(layerMap, result, showAttributes);
 
             if (layerMap is not (Layers.Type, _, _, _, _, _)) return;
 
-            result.Segments.Add((Layers.TypeEnd, "}\n"));
+            var endMemberInfo = CreateMemberHolder<TypeInfo>(ObjectType.GetTypeInfo(), (Layers.TypeEnd, "}\n"));
+
+            result.Segments.Add(endMemberInfo);
 
             foreach (var nestedType in GetNestedTypes())
             {
-                result.Segments.Add((Layers.InnerObjects, nestedType.Generate(layers).ToString(layers)));
+                var nestedMember = CreateMemberHolder<TypeInfo>(nestedType.ObjectType.GetTypeInfo(),
+                    (Layers.InnerObjects, nestedType.Generate(layers).ToString(layers)));
+
+                result.Segments.Add(nestedMember);
             }
+        }
+
+        public IMemberHolder CreateMemberHolder<TInfo>(TInfo info, (Layers layer, string segment) segment)
+            where TInfo : class
+        {
+            var member = new MemberHolder<TInfo>(info, segment);
+            _members.Add(member);
+            return member;
         }
 
         private string GetAttributes(IList<CustomAttributeData> attributes, bool showAttributes)
@@ -172,23 +201,26 @@ namespace PlantUml.Reflector
         private void GetMembers((Layers, Layers, Layers, Layers, Layers, Layers) layerMap, PumlClip result,
             bool showAttributes)
         {
-            List<string> memberStrings = new();
+            var privateFields = ObjectType.GetRuntimeFields().Where(fi => fi.IsPrivate).ToList();
+            var fields = ObjectType.GetRuntimeFields().Where(fi => fi.IsPublic).ToList();
 
-            var privateFields = ObjectType.GetRuntimeFields().Where(fi => fi.IsPrivate)!;
-            var fields = ObjectType.GetRuntimeFields().Where(fi => fi.IsPublic)!;
-
-            if ((layerMap is (_, _, Layers.NonPublic, _, _, _) && privateFields.Any()) ||
-                (layerMap is (_, _, _, Layers.Public, _, _) && fields.Any()))
+            if (layerMap is (_, _, Layers.NonPublic, _, _, _) && privateFields.Any() ||
+                layerMap is (_, _, _, Layers.Public, _, _) && fields.Any())
             {
-
-                memberStrings.Add("\t... fields ...");
+                var memberHolder = CreateMemberHolder(privateFields.FirstOrDefault() ?? fields.First(),
+                    (Layers.Members, "\t... fields ..."));
+                result.Segments.Add(memberHolder);
             }
 
             if (layerMap is (_, _, Layers.NonPublic, _, _, _))
             {
                 foreach (var member in privateFields)
                 {
-                    memberStrings.AddRange(BuildField(member, showAttributes));
+                    var memberHolder = CreateMemberHolder(member,
+                        (Layers.Members, string.Join("\n\t",
+                            BuildField(member,
+                                showAttributes))));
+                    result.Segments.Add(memberHolder);
                 }
             }
 
@@ -196,7 +228,11 @@ namespace PlantUml.Reflector
             {
                 foreach (var member in fields)
                 {
-                    memberStrings.AddRange(BuildField(member, showAttributes));
+                    var memberHolder = CreateMemberHolder(member,
+                        (Layers.Members, string.Join("\n\t",
+                            BuildField(member,
+                                showAttributes))));
+                    result.Segments.Add(memberHolder);
                 }
             }
 
@@ -206,33 +242,55 @@ namespace PlantUml.Reflector
             if (layerMap is (_, _, Layers.NonPublic, _, _, _) && privateCtors.Any() ||
                 layerMap is (_, _, _, Layers.Public, _, _) && ctors.Any())
             {
-                memberStrings.Add("\t... constructors ...");
+                var memberHolder = CreateMemberHolder(privateCtors.FirstOrDefault().ctor ?? ctors.First().ctor,
+                    (Layers.Members, "\t... constructors ..."));
+                result.Segments.Add(memberHolder);
             }
 
             if (layerMap is (_, _, Layers.NonPublic, _, _, _))
             {
-                memberStrings.AddRange(privateCtors);
+                privateCtors.ForEach(pair =>
+                {
+                    var (ctor, segment) = pair;
+                    var memberHolder = CreateMemberHolder(ctor,
+                        (Layers.Members, segment));
+                    result.Segments.Add(memberHolder);
+
+                });
             }
 
             if (layerMap is (_, _, _, Layers.Public, _, _))
             {
-                memberStrings.AddRange(ctors);
+                ctors.ForEach(pair =>
+                {
+                    var (ctor, segment) = pair;
+                    var memberHolder = CreateMemberHolder(ctor,
+                        (Layers.Members, segment));
+                    result.Segments.Add(memberHolder);
+
+                });
             }
 
-            var privateProperties = ObjectType.GetRuntimeProperties().Where(fi => fi.GetMethod?.IsPrivate ?? true);
-            var properties = ObjectType.GetRuntimeProperties().Where(fi => fi.GetMethod?.IsPublic ?? false);
+            var privateProperties = ObjectType.GetRuntimeProperties().Where(fi => fi.GetMethod?.IsPrivate ?? true).ToList();
+            var properties = ObjectType.GetRuntimeProperties().Where(fi => fi.GetMethod?.IsPublic ?? false).ToList();
 
             if (layerMap is (_, _, Layers.NonPublic, _, _, _) && privateProperties.Any() ||
                 layerMap is (_, _, _, Layers.Public, _, _) && properties.Any())
             {
-                memberStrings.Add("\t... properties ...");
+                var memberHolder = CreateMemberHolder(privateProperties.FirstOrDefault() ?? properties.First(),
+                    (Layers.Members, "\t... properties ..."));
+                result.Segments.Add(memberHolder);
             }
 
             if (layerMap is (_, _, Layers.NonPublic, _, _, _))
             {
                 foreach (var member in privateProperties)
                 {
-                    memberStrings.AddRange(BuildProperty(member, BindingFlags.NonPublic, showAttributes));
+                    var memberHolder = CreateMemberHolder(member,
+                        (Layers.Members, string.Join("\n\t",
+                            BuildProperty(member, BindingFlags.NonPublic,
+                                showAttributes))));
+                    result.Segments.Add(memberHolder);
                 }
             }
 
@@ -240,28 +298,38 @@ namespace PlantUml.Reflector
             {
                 foreach (var member in properties)
                 {
-                    memberStrings.AddRange(BuildProperty(member, BindingFlags.Public, showAttributes));
+                    var memberHolder = CreateMemberHolder(member,
+                        (Layers.Members, string.Join("\n\t",
+                            BuildProperty(member, BindingFlags.Public,
+                                showAttributes))));
+                    result.Segments.Add(memberHolder);
                 }
             }
 
             var privateMethods = ObjectType.GetRuntimeMethods().Where(fi =>
                 fi.IsPrivate && !fi.Name.StartsWith("get_", true, CultureInfo.CurrentCulture) &&
-                !fi.Name.StartsWith("set_", true, CultureInfo.CurrentCulture));
+                !fi.Name.StartsWith("set_", true, CultureInfo.CurrentCulture)).ToList();
             var methods = ObjectType.GetRuntimeMethods().Where(fi =>
                 fi.IsPublic && !fi.Name.StartsWith("get_", true, CultureInfo.CurrentCulture) &&
-                !fi.Name.StartsWith("set_", true, CultureInfo.CurrentCulture));
+                !fi.Name.StartsWith("set_", true, CultureInfo.CurrentCulture)).ToList();
 
             if (layerMap is (_, _, Layers.NonPublic, _, _, _) && privateMethods.Any() ||
                 layerMap is (_, _, _, Layers.Public, _, _) && methods.Any())
             {
-                memberStrings.Add("\t... methods ...");
+                var memberHolder = CreateMemberHolder(privateMethods.FirstOrDefault() ?? methods.First(),
+                    (Layers.Members, "\t... methods ..."));
+                result.Segments.Add(memberHolder);
             }
 
             if (layerMap is (_, _, Layers.NonPublic, _, _, _))
             {
                 foreach (var member in privateMethods)
                 {
-                    memberStrings.AddRange(BuildMethod(member, showAttributes));
+                    var memberHolder = CreateMemberHolder(member,
+                        (Layers.Members, string.Join("\n\t",
+                            BuildMethod(member,
+                                showAttributes))));
+                    result.Segments.Add(memberHolder);
                 }
             }
 
@@ -269,36 +337,47 @@ namespace PlantUml.Reflector
             {
                 foreach (var member in methods)
                 {
-                    memberStrings.AddRange(BuildMethod(member, showAttributes));
+                    var memberHolder = CreateMemberHolder(member,
+                        (Layers.Members, string.Join("\n\t",
+                            BuildMethod(member,
+                                showAttributes))));
+                    result.Segments.Add(memberHolder);
                 }
             }
 
-            var privateEvents = ObjectType.GetRuntimeEvents().Where(fi => fi.AddMethod?.IsPrivate ?? true);
-            var events = ObjectType.GetRuntimeEvents().Where(fi => fi.AddMethod?.IsPublic ?? false);
+            var privateEvents = ObjectType.GetRuntimeEvents().Where(fi => fi.AddMethod?.IsPrivate ?? true).ToList();
+            var events = ObjectType.GetRuntimeEvents().Where(fi => fi.AddMethod?.IsPublic ?? false).ToList();
 
             if (layerMap is (_, _, Layers.NonPublic, _, _, _) && privateEvents.Any() ||
                 layerMap is (_, _, _, Layers.Public, _, _) && events.Any())
             {
-                memberStrings.Add("\t... events ...");
+                var memberHolder = CreateMemberHolder(privateEvents.FirstOrDefault() ?? events.First(),
+                    (Layers.Members, "\t... events ..."));
+                result.Segments.Add(memberHolder);
             }
 
             if (layerMap is (_, _, Layers.NonPublic, _, _, _))
             {
                 foreach (var member in privateEvents)
                 {
-                    memberStrings.AddRange(BuildEvent(member, showAttributes));
+                    var memberHolder = CreateMemberHolder(member,
+                        (Layers.Members, string.Join("\n\t",
+                            BuildEvent(member,
+                                showAttributes))));
+                    result.Segments.Add(memberHolder);
                 }
             }
 
-            if (layerMap is (_, _, _, Layers.Public, _, _))
+            if (layerMap is not (_, _, _, Layers.Public, _, _)) return;
+
+            foreach (var member in events)
             {
-                foreach (var member in events)
-                {
-                    memberStrings.AddRange(BuildEvent(member, showAttributes));
-                }
+                var memberHolder = CreateMemberHolder(member,
+                    (Layers.Members, string.Join("\n\t",
+                        BuildEvent(member,
+                            showAttributes))));
+                result.Segments.Add(memberHolder);
             }
-
-            result.Segments.Add((Layers.Members, string.Join("\n", memberStrings)));
         }
 
         // ReSharper disable once UnusedParameter.Local
@@ -363,7 +442,9 @@ namespace PlantUml.Reflector
                             ? $"{objectName.AsSlug()} o- {genericCollectionTypeName?.AsSlug()} : {field.Name} << aggregation >>"
                             : $"{objectName.AsSlug()} -> {fieldTypeName.AsSlug()} : {field.Name} << use >>");
 
-                result.Segments.Add(relationship);
+                var memberHolder = CreateMemberHolder(ObjectType.GetTypeInfo(), relationship);
+
+                result.Segments.Add(memberHolder);
             }
 
             foreach (var property in ObjectType.GetRuntimeProperties())
@@ -374,9 +455,9 @@ namespace PlantUml.Reflector
 
                 var objectName = NormalizeName(ObjectType)!;
 
-                var propertyTypeName = 
-                    property.PropertyType.IsGenericType 
-                        ? NormalizeName(property.PropertyType.GetGenericArguments().First()) 
+                var propertyTypeName =
+                    property.PropertyType.IsGenericType
+                        ? NormalizeName(property.PropertyType.GetGenericArguments().First())
                         : NormalizeName(property.PropertyType);
 
                 var genericCollectionType = property.PropertyType.Name.StartsWith("IEnumerable")
@@ -410,7 +491,9 @@ namespace PlantUml.Reflector
                             ? $"{objectName.AsSlug()} o- {genericCollectionTypeName?.AsSlug()} : {property.Name} << aggregation >>"
                             : $"{objectName.AsSlug()} -> {propertyTypeName.AsSlug()} : {property.Name} << use >>");
 
-                result.Segments.Add(relationship);
+                var memberHolder = CreateMemberHolder(ObjectType.GetTypeInfo(), relationship);
+
+                result.Segments.Add(memberHolder);
             }
         }
 
@@ -423,10 +506,10 @@ namespace PlantUml.Reflector
 
             return types.FirstOrDefault()?.ObjectType ?? GetFromAssembly();
 
-            Type? GetFromAssembly()
+            Type GetFromAssembly()
                 => arrayType.Assembly
                     .GetTypes()
-                    .FirstOrDefault(t => t.Name == trimmedName) 
+                    .FirstOrDefault(t => t.Name == trimmedName)
                    ?? arrayType;
         }
 
@@ -463,10 +546,10 @@ namespace PlantUml.Reflector
                 "SByte[]" => "sbyte[]",
                 "Decimal[]" => "decimal[]",
                 "Boolean[]" => "bool[]",
-                _ => typeName.Replace("System.", string.Empty)
+                _ => typeName
             };
 
-        private IEnumerable<string> BuildConstructors(Layers layers, bool showAttributes)
+        private IEnumerable<(ConstructorInfo ctor, string segment)> BuildConstructors(Layers layers, bool showAttributes)
         {
             var bindingFlags = BindingFlags.Instance | layers switch
             {
@@ -489,9 +572,9 @@ namespace PlantUml.Reflector
 
                 var parms = MakeParList(parList);
 
-                yield return $"{GetAttributes(ctor.GetCustomAttributesData(), showAttributes)}" +
+                yield return (ctor, $"{GetAttributes(ctor.GetCustomAttributesData(), showAttributes)}" +
                              $"\t{GetAccessibility(ctor.IsStatic, ctor.IsAbstract, ctor.IsVirtual, ctor.IsPublic, ctor.IsPrivate, ctor.IsFamily, ctor.IsAssembly)}" +
-                             $"ctor({parms})\n";
+                             $"ctor({parms})\n");
             }
         }
 
@@ -550,8 +633,8 @@ namespace PlantUml.Reflector
 
             if (field.Name.EndsWith("_BackingField")) yield break;
 
-            var IsSpecialName = (field.Attributes & FieldAttributes.SpecialName) == FieldAttributes.SpecialName;
-            if (IsSpecialName) yield break;
+            var isSpecialName = (field.Attributes & FieldAttributes.SpecialName) == FieldAttributes.SpecialName;
+            if (isSpecialName) yield break;
 
             var isPublic = field.IsPublic;
             var isPrivate = field.IsPrivate;
@@ -560,10 +643,10 @@ namespace PlantUml.Reflector
             var attributes = GetAttributes(field.FieldType.GetCustomAttributesData(), showAttributes);
 
             yield return
-                $"{attributes}"+
+                $"{attributes}" +
                 $"\t{GetAccessibility(field.IsStatic, false, false, isPublic, isPrivate, isFamily, field.IsAssembly)}" +
                 $"{NormalizeNameString(field.Name)}" +
-                $": {NormalizeName(GetArrayType(field.FieldType) ?? field.FieldType)}\n";
+                $": {NormalizeName(GetArrayType(field.FieldType)) ?? field.FieldType.Name}\n";
         }
 
         public string? NormalizeName(Type? type)
@@ -714,12 +797,13 @@ namespace PlantUml.Reflector
 
             name = NormalizeType(name);
 
+
             if (name.StartsWith("get_") || name.StartsWith("set_") || name.StartsWith("init_"))
             {
 #if NET5_0
                 name = name[..name.IndexOf("_", StringComparison.Ordinal)] + ";";
 #else
-                name = name.Substring(0,name.IndexOf("_", StringComparison.Ordinal)) + ";";
+                name = name.Substring(0, name.IndexOf("_", StringComparison.Ordinal)) + ";";
 #endif
             }
 
@@ -754,12 +838,5 @@ namespace PlantUml.Reflector
 
             return string.Join(", ", p).Trim();
         }
-    }
-
-    public static class PumlProcessingExtensions
-    {
-        private static readonly Regex Regex = new Regex(@"[^._0-9a-zA-Z]");
-
-        public static string AsSlug(this string text) => Regex.Replace(text, "_");
     }
 }
