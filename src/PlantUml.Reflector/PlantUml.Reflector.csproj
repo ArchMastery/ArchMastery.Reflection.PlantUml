@@ -1,9 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFrameworks>netcoreapp3.1;netstandard2.0;net5.0</TargetFrameworks>
-        <AssemblyVersion>2021.0513.0.214</AssemblyVersion>
-        <FileVersion>2021.0513.0.214</FileVersion>
+        <AssemblyVersion>2021.0514.0.42598</AssemblyVersion>
+        <FileVersion>2021.0514.0.42598</FileVersion>
         <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
         <Authors>The Sharp Ninja &lt;ninja@thesharp.ninja&gt;</Authors>
         <Description>Generate UML Class Diagrams with PlantUML by reflecting over Dotnet Assemblies.</Description>
