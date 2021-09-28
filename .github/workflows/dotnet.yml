@@ -43,6 +43,7 @@ jobs:
         dotnet restore --verbosity normal
         dotnet test --no-restore --verbosity normal
         dotnet pack --no-build --verbosity normal --include-symbols --include-source  -o ${{ env.outputFolder }}
+        write-host "[" ${{ env.nuget_repository }} "]"
 
 #     - name: Git Commit on Workflow
 #       # You may pin to the exact commit or the version.
