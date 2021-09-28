@@ -1,34 +1,101 @@
 name: .NET
 
 on: 
-  release: 
-    types: [published, push]
+  push:
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
+  Common:
+    env:
+      master: 'refs/heads/master'
+      outputFolder: "./artifacts"
+      github_repository: "https://nuget.pkg.github.com/ArchMastery"
+      nuget_repository: "https://api.nuget.org"
+    runs-on: windows-latest
     steps:
+    - name: Setup NuGet.exe for use with actions
+      uses: NuGet/setup-nuget@v1.0.5
+      with:
+        nuget-version: latest
     - uses: actions/checkout@v2
+      continue-on-error: false
+      with:
+        fetch-depth: 0
+    - name: Initialize Git
+      continue-on-error: false
+      run: |
+        git fetch --tags
+        # git branch --create-reflog master origin/master
+
     - name: Setup .NET
+      continue-on-error: false
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.x
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
-    - name: Publish NuGet
-      # You may pin to the exact commit or the version.
-      # uses: brandedoutcast/publish-nuget@c12b8546b67672ee38ac87bea491ac94a587f7cc
-      uses: brandedoutcast/publish-nuget@v2.5.5
+    - name: Install GitVersion
+      continue-on-error: false
+      run: dotnet tool install --global GitVersion.Tool
+    - name: Run GitVersion
+      continue-on-error: false
+      run: dotnet-gitversion /output buildserver /nocache /updateAssemblyInfo true
+    - name: Dotnet
+      continue-on-error: false
+      run: |
+        dotnet restore --verbosity normal
+        dotnet test --no-restore --verbosity normal
+        dotnet pack --no-build --verbosity normal --include-symbols --include-source  -o ${{ env.outputFolder }}
+
+#     - name: Git Commit on Workflow
+#       # You may pin to the exact commit or the version.
+#       # uses: matheusalbino/git-commit@ec22539edac987513eb1787b652fb3375a200807
+#       uses: sharpninja/git-commit@master
+#       with:
+#         # Github Token
+#         github-token: ${{ secrets.GITHUB_TOKEN }}
+        
+#     - name: Publish to Production Nuget Feed
+#       if: ${{ github.ref == env.master  }}
+#       continue-on-error: false
+#       run: |
+#         # ls -al ${{ env.nugetFolder }}/*nupkg
+#         # nuget push ${{ env.nugetFolder }}/*nupkg ${{ secrets.NUGET }} -src "https://api.nuget.org/v3/index.json"
+
+      
+    - name: Publish Core to NuGet
+      if: ${{ github.ref == env.master  }}
+      uses: sharpninja/publish-nuget@master
       with:
-        # Filepath of the project to be packaged, relative to root of repository
-        PROJECT_FILE_PATH: src/PlantUml.Reflector/PlantUml.Reflector.csproj
-        # API key to authenticate with NuGet server
-        NUGET_KEY: ${{ secrets.NUGET }}
-        # NuGet server uri hosting the packages, defaults to https://api.nuget.org
+        OUTPUT_FOLDER: ${{ env.outputFolder }}
+        NO_BUILD: true
+        NUGET_SOURCE: ${{ env.nuget_repository }}
+        NUGET_KEY: ${{ secrets.NUGET_TOKEN }}
+        VERSION_STATIC: ${{ env.GitVersion_SemVer }}
+        TAG_COMMIT: true
         INCLUDE_SYMBOLS: true
+
+#     - name: Publish ArchMastery.Reflector.Core to NUGET
+#       if: ${{ github.ref == 'refs/heads/main' }}
+#       continue-on-error: false
+#       uses: brandedoutcast/publish-nuget@v2.5.5
+#       with:
+#         PROJECT_FILE_PATH: src/ArchMastery.Reflector.Core/ArchMastery.Reflector.Core.csproj
+#         NUGET_KEY: ${{ secrets.NUGET }}
+#         INCLUDE_SYMBOLS: false
+#     - name: Publish ArchMastery.Reflector.Structurizer to Nuget
+#       if: ${{ github.ref == 'refs/heads/main' }}
+#       continue-on-error: false
+#       uses: brandedoutcast/publish-nuget@v2.5.5
+#       with:
+#         PROJECT_FILE_PATH: src/ArchMastery.Reflector.Structurizer/ArchMastery.Reflector.Structurizer.csproj
+#         NUGET_KEY: ${{ secrets.NUGET }}
+#         INCLUDE_SYMBOLS: false
+
+    # Non-Release Deploy to GitHub
+    - name: Publish to GitHub Nuget Feed
+      if: ${{ github.ref != env.master }}
+      continue-on-error: false
+      run: |
+        # nuget sources Add -Name GitHub -Source ${{ env.repository }}
+        # nuget setapikey ${{ secrets.GITHUB }} -Source GitHub
+        # nuget push ${{ env.nugetFolder }}/*nupkg -Source ${{ env.repository }} -ApiKey ${{ secrets.GITHUB }}
+        dotnet nuget push ${{ env.nugetFolder }}/*.nupkg --source ${{ env.repository }} -k ${{ github.token }}
+        
